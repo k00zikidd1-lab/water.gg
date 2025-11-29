@@ -41,7 +41,6 @@ ESP.ShowName = false
 ESP.ShowHealth = false
 ESP.ShowTracer = false
 ESP.ShowDistance = false
-ESP.ShowSkeletons = false
 
 ESP_Settings = {
     BoxOutlineColor = Color3.new(0, 0, 0),
@@ -54,6 +53,9 @@ ESP_Settings = {
     TracerThickness = 2,
     TracerPosition = "Bottom"
 }
+
+local bones = loadstring(game:HttpGet("https://raw.githubusercontent.com/k00zikidd1-lab/water.gg/refs/heads/main/esp"))() 
+bones.ShowSkeletons = false
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -339,7 +341,7 @@ esp:AddToggle("vis7", {
 	Risky = false,
 
 	Callback = function(Value)
-    ESP.ShowSkeletons = Value
+    bones.ShowSkeletons = Value
 end,
 })
 
