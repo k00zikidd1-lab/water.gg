@@ -54,7 +54,8 @@ ESP_Settings = {
     TracerPosition = "Bottom"
 }
 
-local bones = loadstring(game:HttpGet("https://raw.githubusercontent.com/k00zikidd1-lab/water.gg/refs/heads/main/esp"))() 
+local bones = loadstring(game:HttpGet("https://raw.githubusercontent.com/k00zikidd1-lab/water.gg/refs/heads/main/esp"))()
+bones.Enabled = false
 bones.ShowSkeletons = false
 
 local Players = game:GetService("Players")
@@ -341,6 +342,7 @@ esp:AddToggle("vis7", {
 	Risky = false,
 
 	Callback = function(Value)
+	bones.Enabled = Value
     bones.ShowSkeletons = Value
 end,
 })
