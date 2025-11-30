@@ -26,14 +26,14 @@ local tabs = {
 }
 
 local white = tabs.main:AddRightGroupbox("Whitelist")
-local silent = tabs.main:AddLeftGroupbox("Silent Aim", "crosshair") 
-local aim = tabs.main:AddRightGroupbox("Aimbot", "crosshair") 
-local rage = tabs.main:AddLeftGroupbox("Ragebot", "gun")
-local meele = tabs.main:AddRightGroupbox("Meele Aura", "sword") 
-local esp = tabs.vis:AddLeftGroupbox("ESP", "eye") 
-local esp2 = tabs.vis:AddRightGroupbox("ESP Scraps", "eye") 
-local plrc = tabs.plr:AddLeftGroupbox("Player Changes", "user")
-local mod = tabs.main:AddRightGroupbox("Gun Mods", "gun")
+local silent = tabs.main:AddLeftGroupbox("Silent Aim") 
+local aim = tabs.main:AddRightGroupbox("Aimbot") 
+local rage = tabs.main:AddLeftGroupbox("Ragebot")
+local meele = tabs.main:AddRightGroupbox("Meele Aura") 
+local esp = tabs.vis:AddLeftGroupbox("ESP") 
+local esp2 = tabs.vis:AddRightGroupbox("ESP Scraps") 
+local plrc = tabs.plr:AddLeftGroupbox("Player Changes")
+local mod = tabs.main:AddRightGroupbox("Gun Mods")
 
 local ESP = loadstring(game:HttpGet("https://pastebin.com/raw/2dU36TmL"))()
 ESP.Enabled = false
@@ -794,23 +794,7 @@ plrc:AddToggle("inf", {
 
             -- Conexão que roda todo frame (substitui while ... RenderStepped:Wait())
             staminaConn = run.RenderStepped:Connect(function()
-                if Methods.Infstamina == "Getgc" then
-                    local stamina = {}
-                    local ok = pcall(function()
-                        for _, v in pairs(getgc(true)) do
-                            if type(v) == "table" and rawget(v, "S") then
-                                stamina[#stamina + 1] = v
-                            end
-                        end
-                    end)
-
-                    if ok then
-                        for _, a in pairs(stamina) do
-                            a.S = 100
-                        end
-                    end
-
-                elseif Methods.Infstamina == "low exploit" then
+                if functions.InfiniteStamina then
                     if me and me.Character then
                         local hum = me.Character:FindFirstChild("Humanoid")
                         if hum and not hum:GetAttribute("ZSPRN_M") then
@@ -825,7 +809,7 @@ plrc:AddToggle("inf", {
                 -- aguarda humanoid curto prazo para evitar erro
                 local hum = char:FindFirstChild("Humanoid") or char:WaitForChild("Humanoid", 5)
                 if hum then
-                    if Methods.Infstamina == "low exploit" then
+                    if functions.InfiniteStamina then
                         if not hum:GetAttribute("ZSPRN_M") then
                             hum:SetAttribute("ZSPRN_M", true)
                         end
@@ -834,7 +818,7 @@ plrc:AddToggle("inf", {
             end)
 
             -- Se já estiver com personagem no momento da ativação, aplica imediatamente (low exploit)
-            if Methods.Infstamina == "low exploit" and me.Character then
+            if functions.InfiniteStamina and me.Character then
                 local hum = me.Character:FindFirstChild("Humanoid")
                 if hum and not hum:GetAttribute("ZSPRN_M") then
                     hum:SetAttribute("ZSPRN_M", true)
@@ -897,14 +881,27 @@ plrc:AddToggle("nof", {
 
 	Callback = function(Value)
 	    functions.nofalldmg = Value
-	    if Value then
+	    if functions.nofalldmg then
 	        local plrs = game:GetService("Players")
 	        local me = plrs.LocalPlayer
-	        local ff = Instance.new("ForceField")
-	        ff.Parent = me
-	        ff.Visible = true
+	        if me.Character then
+	            local ff = Instance.new("ForceField")
+	            ff.Parent = me.Character
+	            ff.Visible = false
+	        end
+	        me.CharacterAdded:Connect(function(char)
+	            if functions.nofalldmg and char and char:WaitForChild("HumanoidRootPart") and char:WaitForChild("Humanoid") then
+	                local ff = Instance.new("ForceField")
+	                ff.Parent = char
+	                ff.Visible = false
+	            end
+	        end)
 	    else
-	        ff:Destroy()
+	        for _, a in pairs(me.Character:GetChildren()) do
+	            if a:IsA("ForceField") and a.Visible == false then
+	                a:Destroy()
+	            end
+	        end
 	    end
 end,
 })
@@ -923,7 +920,7 @@ if ts then
         Text = "Finish Stomp Speed",
         Default = 2,
         Min = 0,
-        Max = 1.8,
+        Max = 10,
         Rounding = 1,
         Compact = false,
         
