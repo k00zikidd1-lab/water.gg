@@ -76,6 +76,7 @@ local WhiteList = {}
 
 local functions = {
     SilentAim = false,
+	InfiniteStamina = false,
     FastPickup = false,
     RageBot = false,
     InstantReload = false,
