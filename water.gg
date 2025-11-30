@@ -12,16 +12,17 @@ Library.ShowToggleFrameInKeybinds = true
 local window = Library:CreateWindow({
     Title = "Water.GG",
     Footer = "https://discord.gg/R48ZT6XU7",
+	Icon = 128319020082767,
     NotifySide = "Right",
     ShowCustomCursor = true
 })
 
 local tabs = {
-    main = window:AddTab("Combat"),
-    vis = window:AddTab("Visuals"),
-    plr = window:AddTab("Movement"),
-    farm = window:AddTab("Farm"),
-    skin = window:AddTab("Skins")
+    main = window:AddTab("Combat", "sword"),
+    vis = window:AddTab("Visuals", "eye"),
+    plr = window:AddTab("Movement", "user"),
+    farm = window:AddTab("Farm", "star"),
+    skin = window:AddTab("Skins", "palette")
 }
 
 local plrsc = tabs.main:AddRightGroupbox("Whitelist")
