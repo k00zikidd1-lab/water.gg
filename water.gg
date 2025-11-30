@@ -883,3 +883,57 @@ silent:AddSlider("fovt", {
 	Disabled = false, -- Will disable the slider (true / false)
 	Visible = true, -- Will make the slider invisible (true / false)
 })
+
+plrc:AddToggle("nof", {
+	Text = "No Fall Damage",
+	Tooltip = "This is a tooltip",
+	DisabledTooltip = "I am disabled!",
+
+	Default = false,
+	Disabled = false,
+	Visible = true,
+	Risky = false,
+
+	Callback = function(Value)
+	    functions.nofalldmg = Value
+	    if Value then
+	        local plrs = game:GetService("Players")
+	        local me = plrs.LocalPlayer
+	        local ff = Instance.new("ForceField")
+	        ff.Parent = me
+	        ff.Visible = true
+	    else
+	        ff:Destroy()
+	    end
+end,
+})
+:AddKeyPicker("nofalldmg", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "No fall damage Key",
+    NoUI = false,
+})
+
+local rp = game:GetService("ReplicatedStorage")
+local ts = rp:FindFirstChild("Values") and rp.Values:FindFirstChild("FinishSpeedMulti")
+if ts then
+    plrc:AddSlider("finish", {
+        Text = "Finish Stomp Speed",
+        Default = 2,
+        Min = 0,
+        Max = 1.8,
+        Rounding = 1,
+        Compact = false,
+        
+        Callback = function(Value)
+            ts.Value = Value 
+        end,
+        
+        Tooltip = "I am a slider!", -- Information shown when you hover over the slider
+        DisabledTooltip = "I am disabled!", -- Information shown when you hover over the slider while it's disabled
+        
+        Disabled = false, -- Will disable the slider (true / false)
+        Visible = true, -- Will make the slider invisible (true / false)
+        })
+end
