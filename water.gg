@@ -599,161 +599,162 @@ mod:AddToggle("nor", {
     end
 })
 
+-- Melee Aura core (defina antes da UI toggle)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local plrs = Players
+local me = plrs.LocalPlayer
+local run = RunService
+local eventsFolder = ReplicatedStorage:WaitForChild("Events")
+
+local remoteFunctionPath = "XMHH.2"  -- ajuste se necessário
+local remoteEventPath = "XMHH2.2"    -- ajuste se necessário
+
+local remote1 = eventsFolder:WaitForChild(remoteFunctionPath) -- RemoteFunction esperado
+local remote2 = eventsFolder:WaitForChild(remoteEventPath)    -- RemoteEvent esperado
+
+local maxdist = 5
+
+local MeleeAura_Enabled = false
+local MeleeAura_Connection
+
+local function MeleeAura_Disable()
+    MeleeAura_Enabled = false
+    if MeleeAura_Connection and MeleeAura_Connection.Connected then
+        MeleeAura_Connection:Disconnect()
+    end
+    MeleeAura_Connection = nil
+end
+
+local function Attack(target)
+    if not (target and target:FindFirstChild("Head")) then return end
+
+    local char = me.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    if not remote1 or not remote1:IsA("RemoteFunction") then
+        warn("MeleeAura Error: RemoteFunction not found or wrong type at: " .. remoteFunctionPath)
+        MeleeAura_Disable()
+        return
+    end
+    if not remote2 or not remote2:IsA("RemoteEvent") then
+        warn("MeleeAura Error: RemoteEvent not found or wrong type at: " .. remoteEventPath)
+        MeleeAura_Disable()
+        return
+    end
+
+    local arg1 = {
+        [1] = "🍞",
+        [2] = tick(),
+        [3] = tool,
+        [4] = "43TRFWX",
+        [5] = "Normal",
+        [6] = tick(),
+        [7] = true
+    }
+
+    local success1, result = pcall(function()
+        return remote1:InvokeServer(unpack(arg1))
+    end)
+
+    if not success1 then
+        warn("MeleeAura Error: InvokeServer failed:", result)
+        return
+    end
+
+    task.wait(0.1)
+
+    local Handle = tool and (tool:FindFirstChild("WeaponHandle") or tool:FindFirstChild("Handle")) or (char and char:FindFirstChild("Right Arm"))
+    local head = target:FindFirstChild("Head")
+
+    if Handle and head and hrp then
+        local arg2 = {
+            [1] = "🍞",
+            [2] = tick(),
+            [3] = tool,
+            [4] = "2389ZFX34",
+            [5] = result,
+            [6] = false,
+            [7] = Handle,
+            [8] = head,
+            [9] = target,
+            [10] = hrp.Position,
+            [11] = head.Position
+        }
+
+        local success2, err2 = pcall(function()
+            remote2:FireServer(unpack(arg2))
+        end)
+        if not success2 then
+            warn("MeleeAura Error: FireServer failed:", err2)
+        end
+    end
+end
+
+local function runAttackLoop()
+    return run.RenderStepped:Connect(function()
+        if not MeleeAura_Enabled then return end
+        local char = me.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            for _, plr in ipairs(plrs:GetPlayers()) do
+                if plr ~= me then
+                    local c = plr.Character
+                    local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
+                    local hum = c and c:FindFirstChildOfClass("Humanoid")
+                    if hrp2 and hum then
+                        local dist = (hrp.Position - hrp2.Position).Magnitude
+                        if dist < maxdist and hum.Health > 15 and not c:FindFirstChildOfClass("ForceField") then
+                            Attack(c)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function MeleeAura_Enable()
+    if MeleeAura_Enabled then return end
+    MeleeAura_Enabled = true
+    if MeleeAura_Connection and MeleeAura_Connection.Connected then
+        MeleeAura_Connection:Disconnect()
+    end
+    MeleeAura_Connection = runAttackLoop()
+end
+
+-- UI Toggle (chame isso onde cria sua UI)
 meele:AddToggle("meele", {
     Text = "Meele Aura",
     Tooltip = "This is a tooltip",
     DisabledTooltip = "I am disabled!",
+
     Default = false,
     Disabled = false,
     Visible = true,
     Risky = false,
 
     Callback = function(Value)
-        local MeeleAura_Enabled = Value
-        local MeeleAuraConnection
-        functions.MeeleAura = Value
+        -- armazena estado em functions (se você usa essa tabela)
+        functions.meeleaura = Value
 
-        if Value and MeeleAura_Enabled then
-            local MeleeAura_Connection
-            local runAttackLoop do
-
-                local plrs = game:GetService("Players")
-                local me = plrs.LocalPlayer
-                local run = game:GetService("RunService")
-                local replicatedStorage = game:GetService("ReplicatedStorage")
-                local eventsFolder = replicatedStorage:WaitForChild("Events")
-
-                local maxdist = 5
-                local remoteFunctionPath = "XMHH.2"
-                local remoteEventPath = "XMHH2.2"
-
-                local remote1 = eventsFolder:WaitForChild(remoteFunctionPath)
-                local remote2 = eventsFolder:WaitForChild(remoteEventPath)
-
-                local function Attack(target)
-                    if not (target and target:FindFirstChild("Head")) then return end
-
-                    local char = me.Character
-                    local tool = char and char:FindFirstChildOfClass("Tool")
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-                    if not remote1 or not remote1:IsA("RemoteFunction") then
-                        warn("MeleeAura Error: Cannot find RemoteFunction: " .. remoteFunctionPath)
-                        MeleeAura_Disable()
-                        return
-                    end
-                    if not remote2 or not remote2:IsA("RemoteEvent") then
-                        warn("MeleeAura Error: Cannot find RemoteEvent: " .. remoteEventPath)
-                        MeleeAura_Disable()
-                        return
-                    end
-
-                    local arg1 = {
-                        [1] = "🍞",
-                        [2] = tick(),
-                        [3] = tool,
-                        [4] = "43TRFWX",
-                        [5] = "Normal",
-                        [6] = tick(),
-                        [7] = true
-                    }
-
-                    local success1, result = pcall(function()
-                        return remote1:InvokeServer(unpack(arg1))
-                    end)
-                    if not success1 then
-                        warn("InvokeServer failed:", result)
-                        return
-                    end
-
-                    task.wait(0.1)
-
-                    local Handle = tool and (tool:FindFirstChild("WeaponHandle") or tool:FindFirstChild("Handle")) or (char and char:FindFirstChild("Right Arm"))
-                    local head = target:FindFirstChild("Head")
-
-                    if Handle and head and hrp then
-                        local arg2 = {
-                            [1] = "🍞",
-                            [2] = tick(),
-                            [3] = tool,
-                            [4] = "2389ZFX34",
-                            [5] = result,
-                            [6] = false,
-                            [7] = Handle,
-                            [8] = head,
-                            [9] = target,
-                            [10] = hrp.Position,
-                            [11] = head.Position
-                        }
-
-                        local success2, errorMsg2 = pcall(function()
-                            remote2:FireServer(unpack(arg2))
-                        end)
-                        if not success2 then
-                            warn("FireServer failed:", errorMsg2)
-                        end
-                    end
-                end
-
-                runAttackLoop = function()
-                    return run.RenderStepped:Connect(function()
-                        if not MeeleAura_Enabled then return end
-
-                        local char = me.Character
-                        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-                        if hrp then
-                            for _, plr in ipairs(plrs:GetPlayers()) do
-                                if plr ~= me then
-                                    local c = plr.Character
-                                    local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-                                    local hum = c and c:FindFirstChildOfClass("Humanoid")
-
-                                    if hrp2 and hum then
-                                        local dist = (hrp.Position - hrp2.Position).Magnitude
-                                        if dist < maxdist and hum.Health > 15 and not c:FindFirstChildOfClass("ForceField") then
-                                            Attack(c)
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end)
-                end
-            end
-
-            local function MeleeAura_Enable()
-                if MeeleAura_Enabled then return end
-                MeeleAura_Enabled = true
-
-                if MeeleAura_Connection and MeleeAura_Connection.Connected then
-                    MeleeAura_Connection:Disconnect()
-                end
-
-                MeleeAura_Connection = runAttackLoop()
-            end
-
-            local function MeleeAura_Disable()
-                if not MeeleAura_Enabled then return end
-                MeeleAura_Enabled = false
-
-                if MeleeAura_Connection and MeleeAura_Connection.Connected then
-                    MeleeAura_Connection:Disconnect()
-                    MeleeAura_Connection = nil
-                end
-            end
-
+        if Value then
             MeleeAura_Enable()
-
         else
-            if MeleeAura_Connection and MeleeAura_Connection.Connected then
-                MeleeAura_Connection:Disconnect()
-                MeleeAura_Connection = nil
-            end
-            MeeleAura_Enabled = false
+            MeleeAura_Disable()
         end
-    end
+    end,
+}):AddKeyPicker("nofalldmg", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "Meele aura Key",
+    NoUI = false,
 })
+
 
 -- Serviços (definidos fora do Callback para serem persistentes)
 local plrs = game:GetService("Players")
