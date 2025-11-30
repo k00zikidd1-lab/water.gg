@@ -25,15 +25,15 @@ local tabs = {
     skin = window:AddTab("Skins", "palette")
 }
 
-local plrsc = tabs.main:AddRightGroupbox("Whitelist")
-local silent = tabs.main:AddLeftGroupbox("Silent Aim") 
-local aim = tabs.main:AddRightGroupbox("Aimbot") 
-local rage = tabs.main:AddLeftGroupbox("Ragebot")
-local meele = tabs.main:AddRightGroupbox("Meele Aura") 
-local esp = tabs.vis:AddLeftGroupbox("ESP") 
-local esp2 = tabs.vis:AddRightGroupbox("ESP Scraps") 
-local plrc = tabs.plr:AddLeftGroupbox("Player Changes")
-local mod = tabs.main:AddRightGroupbox("Gun Mods")
+local white = tabs.main:AddRightGroupbox("Whitelist")
+local silent = tabs.main:AddLeftGroupbox("Silent Aim", "crosshair") 
+local aim = tabs.main:AddRightGroupbox("Aimbot", "crosshair") 
+local rage = tabs.main:AddLeftGroupbox("Ragebot", "gun")
+local meele = tabs.main:AddRightGroupbox("Meele Aura", "sword") 
+local esp = tabs.vis:AddLeftGroupbox("ESP", "eye") 
+local esp2 = tabs.vis:AddRightGroupbox("ESP Scraps", "eye") 
+local plrc = tabs.plr:AddLeftGroupbox("Player Changes", "user")
+local mod = tabs.main:AddRightGroupbox("Gun Mods", "gun")
 
 local ESP = loadstring(game:HttpGet("https://pastebin.com/raw/2dU36TmL"))()
 ESP.Enabled = false
