@@ -87,6 +87,7 @@ local functions = {
     NoBarriers = false,
     AutoOpenDoors = false,
     FakeDown = false,
+	CheckDowned = false,
     NoGrinder = false,
     AntiFling = false,
     HideHead = false,
@@ -226,6 +227,23 @@ silent:AddToggle("team", {
     functions.CheckTeam = Value
 end,
 })
+
+silent:AddToggle("down", {
+	Text = "Check Downed",
+	Tooltip = "This is a tooltip",
+	DisabledTooltip = "I am disabled!",
+
+	Default = false,
+	Disabled = false,
+	Visible = true,
+	Risky = false,
+
+	Callback = function(Value)
+    SectionSettings.SilentAim.CheckDowned = Value
+    functions.CheckDowned = Value
+end,
+})
+
 
 silent:AddToggle("whitelist", {
 	Text = "Check Whitelist",
@@ -787,7 +805,13 @@ plrc:AddToggle("inf", {
         end
     end
 })
-
+:AddKeyPicker("infkey", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "Infinite Stamina Key",
+    NoUI = false,
+})
 
 silent:AddSlider("fovt", {
 	Text = "FOV Circle Thickness",
