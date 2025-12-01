@@ -756,11 +756,12 @@ meele:AddToggle("meele", {
     NoUI = false,
 })
 
+local oldStamina
+
 plrc:AddToggle("inf", {
     Text = "Infinite Stamina",
     Tooltip = "This is a tooltip",
     DisabledTooltip = "I am disabled!",
-
     Default = false,
     Disabled = false,
     Visible = true,
@@ -768,12 +769,21 @@ plrc:AddToggle("inf", {
 
     Callback = function(Value)
         functions.infstamina = Value
-        local oldStamina
-        if Value and not oldStamina then
-            local oldStamina = hookfunction(getupvalue(getrenv()._G.S_Take, 2), function(v1, ...)
-                if Settings.InfiniteStamina then v1 = 0 end
-                return oldStamina(v1, ...)
-            end)
+
+        if Value then
+            if not oldStamina then
+                oldStamina = hookfunction(getupvalue(getrenv()._G.S_Take, 2), function(v1, ...)
+                    if functions.infstamina then
+                        v1 = 0
+                    end
+                    return oldStamina(v1, ...)
+                end)
+            end
+        else
+            if oldStamina then
+                hookfunction(getupvalue(getrenv()._G.S_Take, 2), oldStamina)
+                oldStamina = nil
+            end
         end
     end
 })
