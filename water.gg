@@ -756,16 +756,6 @@ meele:AddToggle("meele", {
     NoUI = false,
 })
 
-
--- Serviços (definidos fora do Callback para serem persistentes)
-local plrs = game:GetService("Players")
-local me = plrs.LocalPlayer
-local run = game:GetService("RunService")
-
-local Methods = {
-	infstamina = {"low exploit"}
-}
-
 plrc:AddToggle("inf", {
     Text = "Infinite Stamina",
     Tooltip = "This is a tooltip",
@@ -777,65 +767,17 @@ plrc:AddToggle("inf", {
     Risky = false,
 
     Callback = function(Value)
-        functions.infStamina = Value
-
-        if Value then
-            if functions.infstamina then
-                while functions.infstamina do
-                    if Methods.Infstamina == "Getgc" then
-                        local stamina = {}
-
-                        local function get()
-                            for index, value in pairs(getgc(true)) do
-                                if type(value) == "table" and rawget(value, "S") then
-                                    stamina[#stamina + 1] = value
-                                end
-                            end
-                        end
-
-                        local ss = pcall(get)
-
-                        if ss then
-                            for _, a in pairs(stamina) do
-                                a.S = 100
-                            end
-                        end
-
-                    elseif Methods.Infstamina == "low exploit" then
-                        if me.Character then
-                            local hum = me.Character:FindFirstChild("Humanoid")
-                            if hum and not hum:GetAttribute("ZSPRN_M") then
-                                hum:SetAttribute("ZSPRN_M", true)
-                            end
-                        end
-
-                        me.CharacterAdded:Connect(function(char)
-                            if functions.infstamina then
-                                local hum = char:WaitForChild("Humanoid")
-                                if hum and not hum:GetAttribute("ZSPRN_M") then
-                                    hum:SetAttribute("ZSPRN_M", true)
-                                end
-                            end
-                        end)
-                    end
-
-                    run.RenderStepped:Wait()
-                end
-            end
-
-        else
-            if me.Character then
-                local hum = me.Character:FindFirstChild("Humanoid")
-                if hum then
-                    local check = hum:GetAttribute("ZSPRN_M")
-                    if check then
-                        hum:SetAttribute("ZSPRN_M", nil)
-                    end
-                end
-            end
+        functions.infstamina = Value
+        local oldStamina
+        if Value and not oldStamina then
+            local oldStamina = hookfunction(getupvalue(getrenv()._G.S_Take, 2), function(v1, ...)
+                if Settings.InfiniteStamina then v1 = 0 end
+                return oldStamina(v1, ...)
+            end)
         end
     end
 })
+
 
 silent:AddSlider("fovt", {
 	Text = "FOV Circle Thickness",
