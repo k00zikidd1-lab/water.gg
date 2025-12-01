@@ -76,7 +76,7 @@ local WhiteList = {}
 
 local functions = {
     SilentAim = false,
-	InfiniteStamina = false,
+	infiniteStamina = false,
     FastPickup = false,
     RageBot = false,
     InstantReload = false,
@@ -762,14 +762,9 @@ local plrs = game:GetService("Players")
 local me = plrs.LocalPlayer
 local run = game:GetService("RunService")
 
--- Configuração padrão / método (pode ajustar)
 local Methods = {
-    Infstamina = "Getgc", -- ou "low exploit"
+	infstamina = {"low exploit"}
 }
-
--- Variáveis para armazenar conexões e estado
-local staminaConn = nil
-local charConn = nil
 
 plrc:AddToggle("inf", {
     Text = "Infinite Stamina",
@@ -782,74 +777,64 @@ plrc:AddToggle("inf", {
     Risky = false,
 
     Callback = function(Value)
-        -- Quando o toggle é ligado
+        functions.infStamina = Value
+
         if Value then
-            -- Se já existir conexão, desconecta antes (evita duplicar)
-            if staminaConn then
-                staminaConn:Disconnect()
-                staminaConn = nil
-            end
-            if charConn then
-                charConn:Disconnect()
-                charConn = nil
-            end
+            if functions.infstamina then
+                while functions.infstamina do
+                    if Methods.Infstamina == "Getgc" then
+                        local stamina = {}
 
-            -- Conexão que roda todo frame (substitui while ... RenderStepped:Wait())
-            staminaConn = run.RenderStepped:Connect(function()
-                if functions.InfiniteStamina then
-                    if me and me.Character then
-                        local hum = me.Character:FindFirstChild("Humanoid")
-                        if hum and not hum:GetAttribute("ZSPRN_M") then
-                            hum:SetAttribute("ZSPRN_M", true)
+                        local function get()
+                            for index, value in pairs(getgc(true)) do
+                                if type(value) == "table" and rawget(value, "S") then
+                                    stamina[#stamina + 1] = value
+                                end
+                            end
                         end
-                    end
-                end
-            end)
 
-            -- Conectar CharacterAdded para aplicar atributo em novos personagens
-            charConn = me.CharacterAdded:Connect(function(char)
-                -- aguarda humanoid curto prazo para evitar erro
-                local hum = char:FindFirstChild("Humanoid") or char:WaitForChild("Humanoid", 5)
-                if hum then
-                    if functions.InfiniteStamina then
-                        if not hum:GetAttribute("ZSPRN_M") then
-                            hum:SetAttribute("ZSPRN_M", true)
+                        local ss = pcall(get)
+
+                        if ss then
+                            for _, a in pairs(stamina) do
+                                a.S = 100
+                            end
                         end
-                    end
-                end
-            end)
 
-            -- Se já estiver com personagem no momento da ativação, aplica imediatamente (low exploit)
-            if functions.InfiniteStamina and me.Character then
-                local hum = me.Character:FindFirstChild("Humanoid")
-                if hum and not hum:GetAttribute("ZSPRN_M") then
-                    hum:SetAttribute("ZSPRN_M", true)
+                    elseif Methods.Infstamina == "low exploit" then
+                        if me.Character then
+                            local hum = me.Character:FindFirstChild("Humanoid")
+                            if hum and not hum:GetAttribute("ZSPRN_M") then
+                                hum:SetAttribute("ZSPRN_M", true)
+                            end
+                        end
+
+                        me.CharacterAdded:Connect(function(char)
+                            if functions.infstamina then
+                                local hum = char:WaitForChild("Humanoid")
+                                if hum and not hum:GetAttribute("ZSPRN_M") then
+                                    hum:SetAttribute("ZSPRN_M", true)
+                                end
+                            end
+                        end)
+                    end
+
+                    run.RenderStepped:Wait()
                 end
             end
 
-        -- Quando o toggle é desligado
         else
-            -- desconecta as conexões (para parar o loop)
-            if staminaConn then
-                staminaConn:Disconnect()
-                staminaConn = nil
-            end
-            if charConn then
-                charConn:Disconnect()
-                charConn = nil
-            end
-
-            -- limpa atributo do humanoid atual, se existir
-            if me and me.Character then
+            if me.Character then
                 local hum = me.Character:FindFirstChild("Humanoid")
                 if hum then
-                    if hum:GetAttribute("ZSPRN_M") then
+                    local check = hum:GetAttribute("ZSPRN_M")
+                    if check then
                         hum:SetAttribute("ZSPRN_M", nil)
                     end
                 end
             end
         end
-    end,
+    end
 })
 
 silent:AddSlider("fovt", {
