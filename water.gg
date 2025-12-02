@@ -1127,6 +1127,13 @@ plrc:AddToggle("inv", {
         end
     end
 })
+:AddKeyPicker("invkey", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "Invisible Key",
+    NoUI = false,
+})
 
 
 
