@@ -7,7 +7,6 @@ local TARGET_TIME = 2592000 -- 1 mês em segundos (30 dias)
 Players.PlayerAdded:Connect(function(player)
     local savedTime = 0
 
-    -- carrega o tempo salvo
     local success, data = pcall(function()
         return timeStore:GetAsync(player.UserId)
     end)
@@ -16,37 +15,42 @@ Players.PlayerAdded:Connect(function(player)
         savedTime = data
     end
 
+    -- VERIFICAÇÃO INSTANTÂNEA:
+    if savedTime >= TARGET_TIME then
+        player:Kick("Your time key is expired, buy new key or wait to the next giveaway in the server.")
+        return
+    end
+
     local joinTime = os.time()
 
-    -- loop para verificar
+    -- CONTADOR ENQUANTO O PLAYER ESTÁ ONLINE
     while player.Parent == Players do
         task.wait(1)
-
         local total = savedTime + (os.time() - joinTime)
 
         if total >= TARGET_TIME then
-            player:Kick("Você atingiu 1 mês de tempo total e foi kickado.")
+            player:Kick("Your time key is expired, buy new key or wait to the next giveaway in the server.")
             return
         end
     end
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-    local savedTime = 0
-    local success, data = pcall(function()
+    local success, oldTime = pcall(function()
         return timeStore:GetAsync(player.UserId)
     end)
-    if success and data then
-        savedTime = data
+
+    if not success then
+        oldTime = 0
     end
 
-    local playTime = os.time() -- horário atual ao sair
+    local sessionTime = os.time() -- horário de saída
 
-    -- salva o tempo
     pcall(function()
-        timeStore:SetAsync(player.UserId, savedTime + (os.time() - playTime))
+        timeStore:SetAsync(player.UserId, oldTime + (os.time() - sessionTime))
     end)
 end)
+
 
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
