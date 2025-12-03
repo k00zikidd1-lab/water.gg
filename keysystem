@@ -2,3 +2,85 @@ local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+local window = Library:CreateWindow({
+    Title = "Water.GG",
+    Footer = "https://discord.gg/R48ZT6XU7",
+	Icon = 128319020082767,
+    NotifySide = "Right",
+    ShowCustomCursor = true
+})
+
+local tabs = {
+  local key = window:AddKeyTab("Key System")
+}
+
+local keys = key:AddRightGroupbox("Key System")
+
+local currentKey = ""
+
+keys:AddInput("MyTextbox", {
+    Default = "Add Key here...",
+    Numeric = false,
+    Finished = false,
+    ClearTextOnFocus = true,
+    Text = "Key System",
+    Tooltip = "Premium or Admin key",
+    Placeholder = "PREMIUM_A8XXXXXXXX987",
+    Callback = function(v) 
+        currentKey = v 
+    end,
+})
+
+MyButton:AddButton({
+    Text = "Check Key",
+    Func = function()
+        local player = game.Players.LocalPlayer
+
+        local function noti(title, text, duration)
+            game.StarterGui:SetCore("SendNotification", {
+                Title = title,
+                Text = text,
+                Duration = duration or 5
+            })
+        end
+
+        if currentKey == "" then
+            noti("Water.gg", "Enter a key first!", 5)
+            return
+        end
+
+        -- Admin keys = lifetime access
+        if currentKey == "JuiceWrld" or currentKey == "k00zikidd" then
+            noti("Water.gg", "Admin Access Granted", 6)
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/k00zikidd1-lab/water.gg/refs/heads/main/water.gg"))()
+            return
+        end
+
+        -- Premium key validation
+        if not currentKey:match("^PREMIUM_A8%w%w%w%w%w%w%w%w987$") then
+            noti("Water.gg", "Invalid Key!", 5)
+            return
+        end
+
+        local file = "watergg_delta.txt"
+
+        if isfile(file) then
+            local savedTime = tonumber(readfile(file))
+            local daysPassed = math.floor((os.time() - savedTime) / 86400)
+
+            if daysPassed >= 30 then
+                player:Kick("\nWater.gg Premium\nYour key has expired after 30 days!\nGet a new one: water.gg/dsc")
+                return
+            end
+
+            noti("Water.gg", "Key Accepted • "..(30 - daysPassed).." days left", 7)
+        else
+            writefile(file, tostring(os.time()))
+            noti("Water.gg", "Key Activated!\nValid for 30 days", 8)
+        end
+
+        wait(1.8)
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/k00zikidd1-lab/water.gg/refs/heads/main/water.gg"))()
+    end,
+    Tooltip = "Validate key"
+})
