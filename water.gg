@@ -1,3 +1,53 @@
+local Players = game:GetService("Players")
+local DataStoreService = game:GetService("DataStoreService")
+local timeStore = DataStoreService:GetDataStore("PlaytimeStore")
+
+local TARGET_TIME = 2592000 -- 1 mês em segundos (30 dias)
+
+Players.PlayerAdded:Connect(function(player)
+    local savedTime = 0
+
+    -- carrega o tempo salvo
+    local success, data = pcall(function()
+        return timeStore:GetAsync(player.UserId)
+    end)
+
+    if success and data then
+        savedTime = data
+    end
+
+    local joinTime = os.time()
+
+    -- loop para verificar
+    while player.Parent == Players do
+        task.wait(1)
+
+        local total = savedTime + (os.time() - joinTime)
+
+        if total >= TARGET_TIME then
+            player:Kick("Você atingiu 1 mês de tempo total e foi kickado.")
+            return
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    local savedTime = 0
+    local success, data = pcall(function()
+        return timeStore:GetAsync(player.UserId)
+    end)
+    if success and data then
+        savedTime = data
+    end
+
+    local playTime = os.time() -- horário atual ao sair
+
+    -- salva o tempo
+    pcall(function()
+        timeStore:SetAsync(player.UserId, savedTime + (os.time() - playTime))
+    end)
+end)
+
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
