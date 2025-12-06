@@ -82,6 +82,7 @@ local functions = {
 	infiniteStamina = false,
     FastPickup = false,
     RageBot = false,
+	jumpheight = false,
     InstantReload = false,
     AutoPickupScraps = false,
     AutoPickupTools = false,
@@ -769,7 +770,7 @@ meele:AddToggle("meele", {
             MeleeAura_Disable()
         end
     end,
-}):AddKeyPicker("nofalldmg", {
+}):AddKeyPicker("meleaura", {
     Default = "None",
     SyncToggleState = true,
     Mode = "Toggle",
@@ -1162,3 +1163,54 @@ if ts then
         Visible = true, -- Will make the slider invisible (true / false)
         })
 end
+
+plrc:AddToggle("jump", {
+    Text = "Enable Jump Height",
+    Tooltip = "This is a tooltip",
+    DisabledTooltip = "I am disabled!",
+
+    Default = false,
+    Disabled = false,
+    Visible = true,
+    Risky = false,
+
+    Callback = function(Value)
+        functions.jumpheight = Value
+    end,
+})
+
+plrc:AddSlider("jump", {
+    Text = "Jump Height",
+    Default = 2,
+    Min = 1,
+    Max = 25,
+    Rounding = 1,
+    Compact = false,
+        
+    Callback = function(Value)
+        local me = game:GetService("Players").LocalPlayer
+		if functions.JumpHeight then
+			functions.Jumpheight:Disconnect()
+			functions.Jumpheight = nil
+		end
+		functions.Jumpheight = run.RenderStepped:Connect(function()
+			if me.Character:FindFirstChild("Humanoid") then
+				me.Character:FindFirstChild("Humanoid").UseJumpPower = false
+				me.Character:FindFirstChild("Humanoid").JumpHeight = Value
+			end
+		end)
+    end,
+        
+    Tooltip = "I am a slider!", -- Information shown when you hover over the slider
+    DisabledTooltip = "I am disabled!", -- Information shown when you hover over the slider while it's disabled
+        
+    Disabled = false, -- Will disable the slider (true / false)
+    Visible = true, -- Will make the slider invisible (true / false)
+})
+:AddKeyPicker("jumpkey", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "Invisible Key",
+    NoUI = false,
+})
