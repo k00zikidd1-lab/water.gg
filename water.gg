@@ -1179,6 +1179,10 @@ plrc:AddToggle("jump", {
     end,
 })
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local me = Players.LocalPlayer
+
 plrc:AddSlider("jump", {
     Text = "Jump Height",
     Default = 2,
@@ -1186,27 +1190,34 @@ plrc:AddSlider("jump", {
     Max = 25,
     Rounding = 1,
     Compact = false,
-        
+
     Callback = function(Value)
-        local me = game:GetService("Players").LocalPlayer
-		if functions.JumpHeight then
-			functions.Jumpheight:Disconnect()
-			functions.Jumpheight = nil
-		end
-		functions.Jumpheight = run.RenderStepped:Connect(function()
-			if me.Character:FindFirstChild("Humanoid") then
-				me.Character:FindFirstChild("Humanoid").UseJumpPower = false
-				me.Character:FindFirstChild("Humanoid").JumpHeight = Value
-			end
-		end)
+        -- Desconectar conexão antiga, se existir
+        if functions.jumpheight then
+            functions.jumpheight:Disconnect()
+            functions.jumpheight = nil
+        end
+
+        -- Criar nova conexão
+        functions.jumpheight = RunService.RenderStepped:Connect(function()
+            local char = me.Character
+            if char then
+                local hum = char:FindFirstChildWhichIsA("Humanoid")
+                if hum then
+                    hum.UseJumpPower = false
+                    hum.JumpHeight = Value
+                end
+            end
+        end)
     end,
-        
-    Tooltip = "I am a slider!", -- Information shown when you hover over the slider
-    DisabledTooltip = "I am disabled!", -- Information shown when you hover over the slider while it's disabled
-        
-    Disabled = false, -- Will disable the slider (true / false)
-    Visible = true, -- Will make the slider invisible (true / false)
+
+    Tooltip = "I am a slider!",
+    DisabledTooltip = "I am disabled!",
+
+    Disabled = false,
+    Visible = true
 })
+
 :AddKeyPicker("jumpkey", {
     Default = "None",
     SyncToggleState = true,
