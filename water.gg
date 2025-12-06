@@ -82,7 +82,6 @@ local functions = {
 	infiniteStamina = false,
     FastPickup = false,
     RageBot = false,
-	jumpheight = false,
     InstantReload = false,
     AutoPickupScraps = false,
     AutoPickupTools = false,
