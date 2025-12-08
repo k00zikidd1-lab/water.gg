@@ -1162,3 +1162,348 @@ if ts then
         Visible = true, -- Will make the slider invisible (true / false)
         })
 end
+
+local RagebotConfig = {
+    Enabled = false,
+    Cooldown = 1/30,
+    LastShot = 0,
+    DownedCheck = false,
+    TargetLock = "",
+    LockedPlayer = nil,
+    TargetPart = "Head",
+    MaxDistance = 100,
+    CurrentDistance = 100,
+    FireRate = 30,
+    PlayHitSound = true
+}
+
+-- Tracer Configuration
+local TracerConfig = {
+    Enabled = false,
+    ActiveTraces = {},
+    Duration = 3
+}
+
+-- Whitelist Configuration
+local WhitelistConfig = {
+    Enabled = true,
+    Names = {},
+    Prefixes = {}
+}
+
+
+-- Play hit sound function
+local function PlayHitSound()
+    if not RagebotConfig.PlayHitSound then return end
+    
+    local Sound = Instance.new("Sound")
+    Sound.SoundId = "rbxassetid://4817809188"
+    Sound.Volume = 1
+    Sound.Parent = workspace
+    Sound:Play()
+    game:GetService("Debris"):AddItem(Sound, 3)
+end
+
+-- Set fire rate function
+local function SetFireRate(RPS)
+    if type(RPS) ~= "number" or RPS < 1 or RPS > 100 then
+        Library:Notify("Invalid RPS (1-100)")
+        return
+    end
+    
+    RagebotConfig.Cooldown = 1/RPS
+    RagebotConfig.FireRate = RPS
+    Library:Notify("Fire rate set to: " .. RPS .. " RPS")
+end
+
+-- Generate random string for IDs
+local function GenerateRandomID(Length)
+    local Characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+    local Result = ""
+    
+    for i = 1, Length do
+        Result = Result .. string.sub(Characters, math.random(1, #Characters), math.random(1, #Characters))
+    end
+    
+    return Result
+end
+
+-- Create bullet tracer
+local function CreateBulletTracer(TargetPosition)
+    if not TracerConfig.Enabled then return end
+    if not LocalPlayer.Character then return end
+    
+    local Head = LocalPlayer.Character:FindFirstChild("Head")
+    if not Head then return end
+    
+    local TracerPart = Instance.new("Part")
+    TracerPart.Name = "BulletTracer_" .. GenerateRandomID(8)
+    TracerPart.Anchored = true
+    TracerPart.CanCollide = false
+    TracerPart.Transparency = 0.3
+    TracerPart.Color = Color3.fromRGB(255, 255, 255)
+    TracerPart.Material = Enum.Material.Neon
+    TracerPart.Size = Vector3.new(0.1, 0.1, (Head.Position - TargetPosition.Position).Magnitude)
+    TracerPart.CFrame = CFrame.new((Head.Position + TargetPosition.Position)/2, TargetPosition.Position)
+    
+    local Light = Instance.new("PointLight")
+    Light.Brightness = 5
+    Light.Range = 10
+    Light.Color = Color3.fromRGB(255, 255, 255)
+    Light.Parent = TracerPart
+    
+    TracerPart.Parent = Camera
+    TracerConfig.ActiveTraces[TracerPart] = true
+    
+    delay(TracerConfig.Duration, function()
+        if TracerPart and TracerPart.Parent then
+            TracerPart:Destroy()
+            TracerConfig.ActiveTraces[TracerPart] = nil
+        end
+    end)
+end
+
+-- Add to whitelist
+local function AddToWhitelist(Entry)
+    if Entry == "" then return end
+    
+    if tonumber(Entry) then
+        table.insert(WhitelistConfig.Prefixes, Entry)
+        Library:Notify("Added ID prefix: " .. Entry)
+        return
+    end
+    
+    if string.sub(Entry, -1) == "*" then
+        local Prefix = string.sub(Entry, 1, -2)
+        table.insert(WhitelistConfig.Prefixes, Prefix)
+        Library:Notify("Added name prefix: " .. Prefix)
+        return
+    end
+    
+    WhitelistConfig.Names[Entry] = true
+    Library:Notify("Added full name: " .. Entry)
+end
+
+-- Check if player is whitelisted
+local function IsPlayerWhitelisted(Player)
+    if not WhitelistConfig.Enabled then return false end
+    
+    if WhitelistConfig.Names[Player.Name] then
+        return true
+    end
+    
+    local UserID = tostring(Player.UserId)
+    for _, Prefix in ipairs(WhitelistConfig.Prefixes) do
+        if tonumber(Prefix) and UserID:find("^" .. Prefix) then
+            return true
+        end
+    end
+    
+    local LowerName = string.lower(Player.Name)
+    local LowerDisplayName = string.lower(Player.DisplayName)
+    
+    for _, Prefix in ipairs(WhitelistConfig.Prefixes) do
+        local LowerPrefix = string.lower(Prefix)
+        if string.find(LowerName, LowerPrefix, 1, true) == 1 or 
+           string.find(LowerDisplayName, LowerPrefix, 1, true) == 1 then
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- Update target lock
+local function UpdateTargetLock()
+    if RagebotConfig.TargetLock == "" then
+        if RagebotConfig.LockedPlayer then
+            RagebotConfig.LockedPlayer = nil
+            Library:Notify("Target lock cleared")
+        end
+        return
+    end
+    
+    local Matches = {}
+    local SearchTerm = string.lower(RagebotConfig.TargetLock)
+    
+    for _, Player in ipairs(Players:GetPlayers()) do
+        if Player == LocalPlayer then continue end
+        
+        local LowerName = string.lower(Player.Name)
+        local LowerDisplayName = string.lower(Player.DisplayName)
+        local UserID = tostring(Player.UserId)
+        
+        if string.find(LowerName, SearchTerm, 1, true) or 
+           string.find(LowerDisplayName, SearchTerm, 1, true) or 
+           UserID:find("^" .. RagebotConfig.TargetLock) then
+            table.insert(Matches, Player)
+        end
+    end
+    
+    if #Matches == 1 then
+        if RagebotConfig.LockedPlayer ~= Matches[1] then
+            RagebotConfig.LockedPlayer = Matches[1]
+            Library:Notify("LOCKED: " .. Matches[1].Name)
+        end
+    elseif #Matches > 1 then
+        RagebotConfig.LockedPlayer = nil
+        local MatchNames = {}
+        for _, Player in ipairs(Matches) do
+            table.insert(MatchNames, Player.Name)
+        end
+        Library:Notify("Multiple matches:\n" .. table.concat(MatchNames, "\n"))
+    else
+        if RagebotConfig.LockedPlayer ~= nil then
+            RagebotConfig.LockedPlayer = nil
+            Library:Notify("Target lost")
+        end
+    end
+end
+
+-- Find target
+local function FindTarget()
+    if not LocalPlayer.Character then return nil end
+    
+    local RootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not RootPart then return nil end
+    
+    -- Check locked player first
+    if RagebotConfig.LockedPlayer then
+        local TargetPlayer = RagebotConfig.LockedPlayer
+        local TargetCharacter = TargetPlayer.Character
+        
+        if not TargetCharacter then
+            RagebotConfig.LockedPlayer = nil
+            return nil
+        end
+        
+        local TargetRoot = TargetCharacter:FindFirstChild("HumanoidRootPart")
+        local TargetHumanoid = TargetCharacter:FindFirstChildOfClass("Humanoid")
+        
+        if TargetRoot and TargetHumanoid then
+            local IsDowned = TargetHumanoid.Health <= 15 or TargetHumanoid:GetState() == Enum.HumanoidStateType.Dead
+            
+            if RagebotConfig.DownedCheck and IsDowned then
+                RagebotConfig.LockedPlayer = nil
+                return nil
+            end
+            
+            if TargetHumanoid.Health > 0 and not IsPlayerWhitelisted(TargetPlayer) then
+                local Distance = (TargetRoot.Position - RootPart.Position).Magnitude
+                if Distance <= RagebotConfig.CurrentDistance then
+                    return TargetPlayer
+                end
+            end
+        end
+        
+        RagebotConfig.LockedPlayer = nil
+        return nil
+    end
+    
+    -- Find nearest target
+    local BestTarget, BestDistance = nil, RagebotConfig.CurrentDistance
+    local LocalPosition = RootPart.Position
+    
+    for _, Player in ipairs(Players:GetPlayers()) do
+        if Player == LocalPlayer then continue end
+        
+        local Character = Player.Character
+        if not Character then continue end
+        
+        local TargetRoot = Character:FindFirstChild("HumanoidRootPart")
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        
+        if TargetRoot and Humanoid and Humanoid.Health > 0 then
+            if IsPlayerWhitelisted(Player) then
+                continue
+            end
+            
+            if RagebotConfig.DownedCheck and (Humanoid.Health <= 15 or Humanoid:GetState() == Enum.HumanoidStateType.Dead) then
+                continue
+            end
+            
+            local Distance = (TargetRoot.Position - LocalPosition).Magnitude
+            if Distance < BestDistance and Distance <= RagebotConfig.CurrentDistance then
+                BestTarget = Player
+                BestDistance = Distance
+            end
+        end
+    end
+    
+    return BestTarget
+end
+
+-- Shoot target
+local function ShootTarget(TargetPlayer)
+    if not TargetPlayer or not TargetPlayer.Character then return end
+    
+    local TargetPart = TargetPlayer.Character:FindFirstChild(RagebotConfig.TargetPart) or 
+                      TargetPlayer.Character:FindFirstChild("Head") or 
+                      TargetPlayer.Character:FindFirstChild("UpperTorso")
+    
+    if not TargetPart then return end
+    
+    local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if not Tool then return end
+    
+    -- Create tracer
+    if TracerConfig.Enabled then
+        CreateBulletTracer(TargetPart)
+    end
+    
+    -- Fire shots
+    local TargetPosition = TargetPart.Position
+    local Direction = (TargetPosition - Camera.CFrame.Position).Unit
+    local BulletID = GenerateRandomID(30) .. "0"
+    
+    -- Fire server events
+    ReplicatedStorage.Events.GNX_S:FireServer(
+        tick(), BulletID, Tool, "FDS9I83", 
+        Camera.CFrame.Position, {Direction}, false
+    )
+    
+    ReplicatedStorage.Events["ZFKLF__H"]:FireServer(
+        "🧈", Tool, BulletID, 1, TargetPart, 
+        TargetPosition, Direction
+    )
+    
+    -- Trigger hitmarker
+    if Tool:FindFirstChild("Hitmarker") then
+        Tool.Hitmarker:Fire(TargetPart)
+        PlayHitSound()
+    end
+end
+
+-- Main combat loop
+task.spawn(function()
+    while true do
+        if RagebotConfig.Enabled then
+            UpdateTargetLock()
+            
+            local CurrentTime = tick()
+            if CurrentTime - RagebotConfig.LastShot >= RagebotConfig.Cooldown then
+                local Target = FindTarget()
+                if Target then
+                    ShootTarget(Target)
+                    RagebotConfig.LastShot = CurrentTime
+                end
+            end
+        end
+        task.wait()
+    end
+end)
+
+rage:AddToggle("enab", {
+	Text = "Ragebot",
+	Tooltip = "This is a tooltip",
+	DisabledTooltip = "I am disabled!",
+
+	Default = false,
+	Disabled = false,
+	Visible = true,
+	Risky = false,
+
+	Callback = function(Value)
+	RagebotConfig.Enabled = Value
+end,
+})
