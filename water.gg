@@ -113,7 +113,8 @@ local SectionSettings = {
         CheckDowned = false,
         CheckWall = false,
         CheckTeam = false,
-        CheckWhiteList = false
+        CheckWhiteList = false,
+		HitChance = 100
     },
     RageBot = {
         CheckDowned = false,
@@ -193,6 +194,12 @@ silent:AddToggle("silent", {
               if not functions.SilentAim then return end
               if not Gun or not target or not target.Character or not target.Character:FindFirstChild("Humanoid") or target.Character:FindFirstChild("Humanoid").Health == 0 then return end
               if not me.Character or not me.Character:FindFirstChildOfClass("Tool") then return end
+
+			  local hitchance = SectionSettings.SilentAim.HitChance or 100
+			  if math.random(1, 100) > hitchance then
+			  	 return
+			  end
+
               local selectedPart = SectionSettings.SilentAim.TargetParts[1] or "Head"
               local targetPart = target.Character:FindFirstChild(selectedPart) or target.Character:FindFirstChild("Head")
               if not targetPart then return end
@@ -575,6 +582,26 @@ silent:AddDropdown("aimp", {
 	Disabled = false, -- Will disable the dropdown (true / false)
 	Visible = true, -- Will make the dropdown invisible (true / false)
 })
+
+silent:AddSlider("hit", {
+    Text = "Hit Chance",
+    Default = 100,
+    Min = 1,
+    Max = 100,
+    Rounding = 1,
+    Compact = false,
+        
+    Callback = function(Value)
+        SectionSettings.SilentAim.HitChance = Value
+    end,
+        
+    Tooltip = "I am a slider!",
+    DisabledTooltip = "I am disabled!",
+        
+    Disabled = false,
+    Visible = true,
+})
+
 
 silent:AddDivider()
 
@@ -1235,21 +1262,3 @@ plrc:AddSlider("jump", {
     Visible = true,
 })
 
-white:AddDropdown("white", {
-	Values = Whitelist,
-	Default = nil, -- number index of the value / string
-	Multi = false, -- true / false, allows multiple choices to be selected
-
-	Text = "Silent Whitelist",
-	Tooltip = "This is a tooltip", -- Information shown when you hover over the dropdown
-	DisabledTooltip = "I am disabled!", -- Information shown when you hover over the dropdown while it's disabled
-
-	Searchable = false, -- true / false, makes the dropdown searchable (great for a long list of values)
-
-	Callback = function(selected)
-		whitelist(selected)
-	end,
-
-	Disabled = false, -- Will disable the dropdown (true / false)
-	Visible = true, -- Will make the dropdown invisible (true / false)
-})
