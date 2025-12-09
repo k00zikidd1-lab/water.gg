@@ -126,22 +126,6 @@ local SectionSettings = {
 
 local cockie = {SilentAimCircle = nil}
 
-local function whitelist()
-	local plrs = game:GetService("Players")
-	local list = {}
-	for _, player in ipairs(plrs:GetPlayers()) do
-		table.insert(list, player)
-	end
-	return list
-end
-
-local function addwhite(playername)
-	for _, name in ipairs(Whitelist) do
-		if name == playername then return end
-	end
-	table.insert(Whitelist, playername)
-end
-
 local function downed(p)
 	if not p or p.Character then return false end
 	local hum = plrs:FindFirstChildOfClass("Humanoid")
@@ -187,6 +171,7 @@ silent:AddToggle("silent", {
                       if SectionSettings.SilentAim.CheckDowned and downed(a) then continue end
                       if SectionSettings.SilentAim.CheckTeam and a.Team == me.Team then continue end
                       if SectionSettings.SilentAim.CheckWhiteList and table.find(Whitelist, a) then continue end
+					  if SectionSettings.SilentAim.CheckFF and a.Character:FindFirstChild("ForceField") then continue end
                       local hrp = a.Character:FindFirstChild("HumanoidRootPart")
                       if hrp then
                           local screenpos, onScreen = camera:WorldToViewportPoint(hrp.Position)
