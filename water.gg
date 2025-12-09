@@ -1218,3 +1218,283 @@ plrc:AddSlider("jump", {
     Disabled = false,
     Visible = true,
 })
+
+local SilentAim = {
+    enabled = false,
+    settings = {
+        checkDowned = true,
+        teamCheck = false,
+        checkWhitelist = false,
+        checkTarget = false,
+        fovCircleCentered = false,
+        drawColor = Color3.fromRGB(255, 255, 255),
+        drawSize = 100,
+        useHitChance = true,
+        hitChance = 100,
+        checkWall = true,
+        targetPart = "Head",
+        actualPart = "Head",
+        drawCircle = false,
+        targetChangeTime = 0.5,
+        showHitPartNotification = false,
+        notificationSize = 20,
+        maxDistance = 120
+    },
+    currentTarget = nil,
+    visualizeConnection = nil,
+    randomizerTimer = 0
+}
+
+local ValidParts = {"Head", "HumanoidRootPart", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+
+local circle = Drawing.new("Circle")
+circle.Visible = false
+circle.Transparency = 1
+circle.Thickness = 1.5
+circle.Filled = false
+
+
+local function UpdateCircleProps()
+    circle.Color = SilentAim.settings.drawColor
+    circle.Radius = SilentAim.settings.drawSize
+end
+
+local DrawCircleConnection
+local function UpdateCircle()
+    if DrawCircleConnection then 
+        DrawCircleConnection:Disconnect() 
+        DrawCircleConnection = nil
+    end
+
+    if SilentAim.settings.drawCircle then
+        circle.Visible = true
+        UpdateCircleProps()
+
+        local screenCenter = SilentAim.settings.fovCircleCentered and 
+            Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2) or nil
+
+        DrawCircleConnection = RunService.RenderStepped:Connect(function()
+            circle.Position = screenCenter or UserInputService:GetMouseLocation()
+        end)
+    else
+        circle.Visible = false
+    end
+end
+
+local randomTargetConnection
+local function StopRandomizer()
+    if randomTargetConnection then
+        randomTargetConnection:Disconnect()
+        randomTargetConnection = nil
+    end
+end
+
+local function StartRandomizer()
+    StopRandomizer()
+    if not SilentAim.enabled or SilentAim.settings.targetPart ~= "Random" then return end
+
+    SilentAim.randomizerTimer = 0
+
+    randomTargetConnection = RunService.Heartbeat:Connect(function(dt)
+        SilentAim.randomizerTimer = (SilentAim.randomizerTimer or 0) + dt
+
+        if SilentAim.randomizerTimer >= SilentAim.settings.targetChangeTime then
+            local currentPart = SilentAim.settings.actualPart
+            local newPart = ValidParts[math.random(1, #ValidParts)]
+
+            if newPart ~= currentPart then
+                SilentAim.settings.actualPart = newPart
+            end
+
+            SilentAim.randomizerTimer = 0
+        end
+    end)
+end
+
+local function IsPlayerDowned(p)
+    if not p or not p.Character then return false end
+
+    local hum = p.Character:FindFirstChildOfClass("Humanoid")
+    if hum and hum.Health <= 15 then return true end
+
+    local cs = p.Character:FindFirstChild("CharStats")
+    if cs then
+        local downed = cs:FindFirstChild("Downed")
+        if downed and typeof(downed.Value) == "boolean" then
+            return downed.Value
+        end
+    end
+
+    return false
+end
+
+local function GetSilentAimTarget(IsPlayerWhitelisted, IsPlayerTargeted)
+    if not SilentAim.enabled then return nil end
+
+    local closest, minDist = nil, SilentAim.settings.drawSize
+    local screenCenter = SilentAim.settings.fovCircleCentered and 
+        Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2) or UserInputService:GetMouseLocation()
+
+    local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return nil end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        if SilentAim.settings.teamCheck and player.Team == LocalPlayer.Team then continue end
+        if SilentAim.settings.checkWhitelist and IsPlayerWhitelisted and IsPlayerWhitelisted(player) then continue end
+        if SilentAim.settings.checkTarget and IsPlayerTargeted and not IsPlayerTargeted(player) then continue end
+        
+        local character = player.Character
+        if not character then continue end
+
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local root = character:FindFirstChild("HumanoidRootPart")
+
+        if not humanoid or not root or humanoid.Health <= 0 or character:FindFirstChildOfClass("ForceField") then continue end
+        if SilentAim.settings.checkDowned and IsPlayerDowned(player) then continue end
+
+        local partName = SilentAim.settings.targetPart == "Random" and SilentAim.settings.actualPart or SilentAim.settings.targetPart
+        local part = character:FindFirstChild(partName)
+
+        if not part then continue end
+        if (localRoot.Position - part.Position).Magnitude > SilentAim.settings.maxDistance then continue end
+
+        if SilentAim.settings.checkWall then
+            local parts = Camera:GetPartsObscuringTarget({part.Position}, {Camera, LocalPlayer.Character, character})
+            if #parts > 0 then continue end
+        end
+
+        local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+        if onScreen then
+            local distance = (screenCenter - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+            if distance < minDist then
+                closest = player
+                minDist = distance
+            end
+        end
+    end
+
+    if closest and SilentAim.settings.useHitChance and math.random(1, 100) > SilentAim.settings.hitChance then
+        return nil
+    end
+
+    return closest
+end
+
+function SilentAim:Toggle(val, IsPlayerWhitelisted, IsPlayerTargeted)
+    self.enabled = val
+
+    if self.visualizeConnection then 
+        self.visualizeConnection:Disconnect() 
+        self.visualizeConnection = nil
+    end
+
+    if self.silentAimTask then 
+        task.cancel(self.silentAimTask) 
+        self.silentAimTask = nil
+    end
+
+    if val then
+        self.silentAimTask = task.spawn(function()
+            while self.enabled do
+                self.currentTarget = GetSilentAimTarget(IsPlayerWhitelisted, IsPlayerTargeted)
+                task.wait(0.1)
+            end
+        end)
+
+        StartRandomizer()
+
+        local success1, visualizeEvent = pcall(function()
+            return ReplicatedStorage:WaitForChild("Events2", 5):WaitForChild("Visualize", 5)
+        end)
+
+        local success2, damageEvent = pcall(function()
+            return ReplicatedStorage:WaitForChild("Events", 5):WaitForChild("ZFKLF__H", 5)
+        end)
+
+        if success1 and success2 and visualizeEvent and damageEvent then
+            self.visualizeConnection = visualizeEvent.Event:Connect(function(_, shotCode, _, gun, _, startPos, bulletsPerShot)
+                local target = self.currentTarget
+                if not self.enabled or not gun or not target or not target.Character then return end
+
+                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if not tool or gun ~= tool or target.Character:FindFirstChildOfClass("ForceField") then return end
+
+                local partName = self.settings.targetPart == "Random" and self.settings.actualPart or self.settings.targetPart
+                local validPartName = partName
+
+                if partName == "HumanoidRootPart" then
+                    validPartName =
+                        target.Character:FindFirstChild("UpperTorso") and "UpperTorso" or
+                        target.Character:FindFirstChild("Torso") and "Torso" or
+                        target.Character:FindFirstChild("LowerTorso") and "LowerTorso" or
+                        "Head"
+                end
+
+                local hitPart = target.Character:FindFirstChild(validPartName)
+                if not hitPart then return end
+
+                local hitPos = hitPart.Position
+                local bullets = {}
+
+                local bulletCount = type(bulletsPerShot) == "table" and #bulletsPerShot or 1
+                for i = 1, math.clamp(bulletCount, 1, 100) do
+                    bullets[i] = CFrame.new(startPos, hitPos).LookVector
+                end
+
+                task.wait(0.005)
+
+                for idx, direction in pairs(bullets) do
+                    pcall(function()
+                        damageEvent:FireServer("🧈", gun, shotCode, idx, hitPart, hitPos, direction)
+                    end)
+                end
+
+                if gun:FindFirstChild("Hitmarker") then
+                    pcall(function()
+                        gun.Hitmarker:Fire(hitPart)
+                    end)
+                end
+            end)
+        end
+    else
+        StopRandomizer()
+    end
+end
+
+function SilentAim:UpdateCircle()
+    UpdateCircle()
+end
+
+function SilentAim:UpdateCircleProps()
+    UpdateCircleProps()
+end
+
+function SilentAim:StartRandomizer()
+    StartRandomizer()
+end
+
+function SilentAim:StopRandomizer()
+    StopRandomizer()
+end
+
+return SilentAim
+
+silent:AddToggle("si", {
+    Text = "Silent Aim",
+    Tooltip = "This is a tooltip",
+    DisabledTooltip = "I am disabled!",
+    Default = false,
+    Disabled = false,
+    Visible = true,
+    Risky = false,
+
+    Callback = function(Value)
+        SilentAim.enabled = Value
+        if Value then
+            SilentAim:Toggle()
+        else
+            if SilentAim.enabled then return end
+        end
+    end
+})
