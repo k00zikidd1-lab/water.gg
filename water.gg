@@ -1251,7 +1251,7 @@ plrc:AddSlider("jump", {
 })
 
 white:AddDropdown("white", {
-	Values = whitelist,
+	Values = Whitelist,
 	Default = nil, -- number index of the value / string
 	Multi = false, -- true / false, allows multiple choices to be selected
 
