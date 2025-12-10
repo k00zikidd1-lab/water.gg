@@ -117,7 +117,6 @@ local SectionSettings = {
 		CheckFF = false,
         CheckTeam = false,
         CheckWhiteList = false,
-		MaxDistance = 120,
 		HitChance = 100
     },
     RageBot = {
@@ -202,9 +201,8 @@ silent:AddToggle("silent", {
                       if SectionSettings.SilentAim.CheckTeam and a.Team == me.Team then continue end
                       if SectionSettings.SilentAim.CheckWhiteList and table.find(Whitelist, a) then continue end
 					  if SectionSettings.SilentAim.CheckFF and a.Character:FindFirstChild("ForceField") then continue end
-					  if (localRoot.Position - part.Position).Magnitude > SectionSettings.SilentAim.MaxDistance then continue end
 					  local character = a.Character
-                      local partName = SectionSettings.SilentAim.TargetParts == "Random" and SectionSettings.SilentAim.ActualPart or SectionSettings.SilentAim.TargetParts
+                      local partName = SectionSettings.SilentAim.TargetParts
                       local part = character:FindFirstChild(partName)
                       if not part then continue end
 
@@ -658,27 +656,6 @@ silent:AddDropdown("aimp", {
 	Disabled = false, -- Will disable the dropdown (true / false)
 	Visible = true, -- Will make the dropdown invisible (true / false)
 })
-
-silent:AddSlider("dis", {
-    Text = "Max Distance",
-    Default = 100,
-    Min = 1,
-    Max = 120,
-    Rounding = 1,
-    Compact = false,
-        
-    Callback = function(Value)
-        SectionSettings.SilentAim.HitChance = Value
-    end,
-        
-    Tooltip = "I am a slider!",
-    DisabledTooltip = "I am disabled!",
-        
-    Disabled = false,
-    Visible = true,
-})
-
-
 
 silent:AddSlider("hit", {
     Text = "Hit Chance",
