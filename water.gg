@@ -110,6 +110,8 @@ local SectionSettings = {
 		    Thickness = 2,
         Transparency = 1,
         TargetParts = {"Head"},
+		ActualPart = {"Head"},
+		TargetChangeTime = 0.5,
         CheckDowned = false,
         CheckWall = false,
         CheckTeam = false,
@@ -127,6 +129,8 @@ local SectionSettings = {
 
 local cockie = {SilentAimCircle = nil}
 
+local ValidParts = {"Head", "HumanoidRootPart", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+
 local function downed(p)
 	if not p or p.Character then return false end
 	local hum = plrs:FindFirstChildOfClass("Humanoid")
@@ -140,6 +144,29 @@ local function downed(p)
 		end
 		return false
 	end
+end
+
+local randomConn
+
+local function UpdateRandomTarget()
+    if not SectionSettings.SilentAim.Enabled or SectionSettings.SilentAim.TargetPart ~= "Random" then 
+        if randomConn then randomConn:Disconnect() randomConn = nil end
+        return 
+    end
+
+    if randomConn then randomConn:Disconnect() end
+    local timer = 0
+
+    randomConn = game:GetService("RunService").Heartbeat:Connect(function(dt)
+        timer += dt
+        if timer >= SectionSettings.SilentAim.TargetChangeTime then
+            timer = 0
+            local newPart = ValidParts[math.random(#ValidParts)]
+            if newPart ~= SectionSettings.SilentAim.ActualPart then
+                SectionSettings.SilentAim.ActualPart = newPart
+            end
+        end
+    end)
 end
 
 silent:AddToggle("silent", {
@@ -228,7 +255,8 @@ silent:AddToggle("silent", {
               getgenv().SilentAimVisualizeConn:Disconnect()
           end
       end
-	   end
+	  StartRandomTarget()
+end
 })
 :AddKeyPicker("silentkey", {
     Default = "None",
@@ -565,7 +593,7 @@ plrc:AddToggle("autopickupcrates", {
 })
 
 silent:AddDropdown("aimp", {
-	Values = { "Head", "Torso", "Left Leg", "Right Leg", "Left Arm", "Right Arm" },
+	Values = {"Head", "Torso", "Right leg", "Left leg", "Right Arm", "Left Arm", "Random"},
 	Default = 1, -- number index of the value / string
 	Multi = false, -- true / false, allows multiple choices to be selected
 
@@ -577,6 +605,13 @@ silent:AddDropdown("aimp", {
 
 	Callback = function(Value)
 		SectionSettings.SilentAim.TargetParts = {Value}
+		if Value == "Random" then
+			StartRandomTarget() 
+		else 
+			if getgenv().RandomTargetConn then 
+				getgenv().RandomTargetConn:Disconnect() 
+			end 
+		end
 	end,
 
 	Disabled = false, -- Will disable the dropdown (true / false)
