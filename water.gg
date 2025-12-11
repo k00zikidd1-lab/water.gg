@@ -147,29 +147,6 @@ local function downed(p)
 	end
 end
 
-local randomConn
-
-local function UpdateRandomTarget()
-    if not SectionSettings.SilentAim.Enabled or SectionSettings.SilentAim.TargetPart ~= "Random" then 
-        if randomConn then randomConn:Disconnect() randomConn = nil end
-        return 
-    end
-
-    if randomConn then randomConn:Disconnect() end
-    local timer = 0
-
-    randomConn = game:GetService("RunService").Heartbeat:Connect(function(dt)
-        timer += dt
-        if timer >= SectionSettings.SilentAim.TargetChangeTime then
-            timer = 0
-            local newPart = ValidParts[math.random(#ValidParts)]
-            if newPart ~= SectionSettings.SilentAim.ActualPart then
-                SectionSettings.SilentAim.ActualPart = newPart
-            end
-        end
-    end)
-end
-
 silent:AddToggle("silent", {
 	Text = "Silent Aim",
 	Tooltip = "This is a tooltip",
@@ -256,7 +233,6 @@ silent:AddToggle("silent", {
               getgenv().SilentAimVisualizeConn:Disconnect()
           end
       end
-	  StartRandomTarget()
 end
 })
 :AddKeyPicker("silentkey", {
