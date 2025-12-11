@@ -130,8 +130,6 @@ local SectionSettings = {
 
 local cockie = {SilentAimCircle = nil}
 
-local ValidParts = {"Head", "HumanoidRootPart", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
-
 local function downed(p)
 	if not p or p.Character then return false end
 	local hum = plrs:FindFirstChildOfClass("Humanoid")
@@ -271,7 +269,6 @@ silent:AddToggle("down", {
 
 	Callback = function(Value)
     SectionSettings.SilentAim.CheckDowned = Value
-    functions.CheckDowned = Value
 end,
 })
 
@@ -289,8 +286,6 @@ silent:AddToggle("ff", {
     SectionSettings.SilentAim.CheckFF = Value
 end,
 })
-
-silent:AddToggle("wall", {
 
 silent:AddToggle("whitelist", {
 	Text = "Check Whitelist",
@@ -598,13 +593,6 @@ silent:AddDropdown("aimp", {
 
 	Callback = function(Value)
 		SectionSettings.SilentAim.TargetParts = {Value}
-		if Value == "Random" then
-			StartRandomTarget() 
-		else 
-			if getgenv().RandomTargetConn then 
-				getgenv().RandomTargetConn:Disconnect() 
-			end 
-		end
 	end,
 
 	Disabled = false, -- Will disable the dropdown (true / false)
