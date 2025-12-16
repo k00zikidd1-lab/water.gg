@@ -688,3 +688,588 @@ local eventsFolder = ReplicatedStorage:WaitForChild("Events")
 
 local remoteFunctionPath = "XMHH.2"  -- ajuste se necessário
 local remoteEventPath = "XMHH2.2"    -- ajus
+
+local remote1 = eventsFolder:WaitForChild(remoteFunctionPath) -- RemoteFunction esperado
+local remote2 = eventsFolder:WaitForChild(remoteEventPath)    -- RemoteEvent esperado
+
+local maxdist = 5
+
+local MeleeAura_Enabled = false
+local MeleeAura_Connection
+
+local function MeleeAura_Disable()
+    MeleeAura_Enabled = false
+    if MeleeAura_Connection and MeleeAura_Connection.Connected then
+        MeleeAura_Connection:Disconnect()
+    end
+    MeleeAura_Connection = nil
+end
+
+local function Attack(target)
+    if not (target and target:FindFirstChild("Head")) then return end
+
+    local char = me.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    if not remote1 or not remote1:IsA("RemoteFunction") then
+        warn("MeleeAura Error: RemoteFunction not found or wrong type at: " .. remoteFunctionPath)
+        MeleeAura_Disable()
+        return
+    end
+    if not remote2 or not remote2:IsA("RemoteEvent") then
+        warn("MeleeAura Error: RemoteEvent not found or wrong type at: " .. remoteEventPath)
+        MeleeAura_Disable()
+        return
+    end
+
+    local arg1 = {
+        [1] = "🍞",
+        [2] = tick(),
+        [3] = tool,
+        [4] = "43TRFWX",
+        [5] = "Normal",
+        [6] = tick(),
+        [7] = true
+    }
+
+    local success1, result = pcall(function()
+        return remote1:InvokeServer(unpack(arg1))
+    end)
+
+    if not success1 then
+        warn("MeleeAura Error: InvokeServer failed:", result)
+        return
+    end
+
+    task.wait(0.1)
+
+    local Handle = tool and (tool:FindFirstChild("WeaponHandle") or tool:FindFirstChild("Handle")) or (char and char:FindFirstChild("Right Arm"))
+    local head = target:FindFirstChild("Head")
+
+    if Handle and head and hrp then
+        local arg2 = {
+            [1] = "🍞",
+            [2] = tick(),
+            [3] = tool,
+            [4] = "2389ZFX34",
+            [5] = result,
+            [6] = false,
+            [7] = Handle,
+            [8] = head,
+            [9] = target,
+            [10] = hrp.Position,
+            [11] = head.Position
+        }
+
+        local success2, err2 = pcall(function()
+            remote2:FireServer(unpack(arg2))
+        end)
+        if not success2 then
+            warn("MeleeAura Error: FireServer failed:", err2)
+        end
+    end
+end
+
+local function runAttackLoop()
+    return run.RenderStepped:Connect(function()
+        if not MeleeAura_Enabled then return end
+        local char = me.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            for _, plr in ipairs(plrs:GetPlayers()) do
+                if plr ~= me then
+                    local c = plr.Character
+                    local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
+                    local hum = c and c:FindFirstChildOfClass("Humanoid")
+                    if hrp2 and hum then
+                        local dist = (hrp.Position - hrp2.Position).Magnitude
+                        if dist < maxdist and hum.Health > 15 and not c:FindFirstChildOfClass("ForceField") then
+                            Attack(c)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function MeleeAura_Enable()
+    if MeleeAura_Enabled then return end
+    MeleeAura_Enabled = true
+    if MeleeAura_Connection and MeleeAura_Connection.Connected then
+        MeleeAura_Connection:Disconnect()
+    end
+    MeleeAura_Connection = runAttackLoop()
+end
+
+-- UI Toggle (chame isso onde cria sua UI)
+meele:AddToggle("meele", {
+    Text = "Meele Aura",
+    Tooltip = "This is a tooltip",
+    DisabledTooltip = "I am disabled!",
+
+    Default = false,
+    Disabled = false,
+    Visible = true,
+    Risky = false,
+
+    Callback = function(Value)
+        -- armazena estado em functions (se você usa essa tabela)
+        functions.meeleaura = Value
+
+        if Value then
+            MeleeAura_Enable()
+        else
+            MeleeAura_Disable()
+        end
+    end,
+}):AddKeyPicker("meleaura", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "Meele aura Key",
+    NoUI = false,
+})
+
+local oldStamina
+
+plrc:AddToggle("inf", {
+    Text = "Infinite Stamina",
+    Tooltip = "This is a tooltip",
+    DisabledTooltip = "I am disabled!",
+    Default = false,
+    Disabled = false,
+    Visible = true,
+    Risky = false,
+
+    Callback = function(Value)
+        functions.infstamina = Value
+
+        if Value then
+            if not oldStamina then
+                oldStamina = hookfunction(getupvalue(getrenv()._G.S_Take, 2), function(v1, ...)
+                    if functions.infstamina then
+                        v1 = 0
+                    end
+                    return oldStamina(v1, ...)
+                end)
+            end
+        else
+            if oldStamina then
+                hookfunction(getupvalue(getrenv()._G.S_Take, 2), oldStamina)
+                oldStamina = nil
+            end
+        end
+    end
+})
+:AddKeyPicker("infkey", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "Infinite Stamina Key",
+    NoUI = false,
+})
+
+silent:AddSlider("fovt", {
+	Text = "FOV Circle Thickness",
+	Default = 2,
+	Min = 1,
+	Max = 10,
+	Rounding = 1,
+	Compact = false,
+
+	Callback = function(Value)
+		SectionSettings.SilentAim.Thickness = Value
+	end,
+
+	Tooltip = "I am a slider!", -- Information shown when you hover over the slider
+	DisabledTooltip = "I am disabled!", -- Information shown when you hover over the slider while it's disabled
+
+	Disabled = false, -- Will disable the slider (true / false)
+	Visible = true, -- Will make the slider invisible (true / false)
+})
+
+plrc:AddToggle("nof", {
+	Text = "No Fall Damage",
+	Tooltip = "This is a tooltip",
+	DisabledTooltip = "I am disabled!",
+
+	Default = false,
+	Disabled = false,
+	Visible = true,
+	Risky = false,
+
+	Callback = function(Value)
+	    functions.nofalldmg = Value
+	    if functions.nofalldmg then
+	        local plrs = game:GetService("Players")
+	        local me = plrs.LocalPlayer
+	        if me.Character then
+	            local ff = Instance.new("ForceField")
+	            ff.Parent = me.Character
+	            ff.Visible = false
+	        end
+	        me.CharacterAdded:Connect(function(char)
+	            if functions.nofalldmg and char and char:WaitForChild("HumanoidRootPart") and char:WaitForChild("Humanoid") then
+	                local ff = Instance.new("ForceField")
+	                ff.Parent = char
+	                ff.Visible = false
+	            end
+	        end)
+	    else
+	        for _, a in pairs(me.Character:GetChildren()) do
+	            if a:IsA("ForceField") and a.Visible == false then
+	                a:Destroy()
+	            end
+	        end
+	    end
+end,
+})
+:AddKeyPicker("nofalldmg", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "No fall damage Key",
+    NoUI = false,
+})
+
+-- === Invisibility core (mais resistente a erros) ===
+local cloneref = cloneref or function(...) return ... end
+local Service = setmetatable({}, {
+    __index = function(_, k) return cloneref(game:GetService(k)) end
+})
+
+-- espera o jogo e o LocalPlayer
+repeat task.wait() until game:IsLoaded()
+local Players = Service.Players
+local Player = Players and Players.LocalPlayer
+repeat task.wait() Player = Players and Players.LocalPlayer until Player
+
+-- referências do personagem (garante existência)
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid, HumanoidRootPart
+local function UpdateCharacterReferences()
+    Character = Player.Character
+    if Character then
+        HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+        Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    else
+        HumanoidRootPart = nil
+        Humanoid = nil
+    end
+end
+UpdateCharacterReferences()
+
+local Invis_Fixed = true
+local InvisEnabled = false
+local Track = nil
+local Animation = Instance.new("Animation")
+Animation.AnimationId = "rbxassetid://215384594"
+
+local RunService = Service.RunService
+local Heartbeat = RunService and RunService.Heartbeat
+local RenderStepped = RunService and RunService.RenderStepped
+local StarterGui = Service.StarterGui
+local CoreGui = Service.CoreGui
+
+-- GUI aviso
+local GUI = Instance.new("ScreenGui")
+GUI.Name = "InvisWarningGUI"
+GUI.ResetOnSpawn = false
+GUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+GUI.Parent = CoreGui
+
+local WarnLabel = Instance.new("TextLabel", GUI)
+WarnLabel.Text = "⚠️You are visible⚠️"
+WarnLabel.Visible = false
+WarnLabel.Size = UDim2.new(0, 200, 0, 30)
+WarnLabel.Position = UDim2.new(0.5, -100, 0.85, 0)
+WarnLabel.BackgroundTransparency = 1
+WarnLabel.Font = Enum.Font.GothamSemibold
+WarnLabel.TextSize = 24
+WarnLabel.TextColor3 = Color3.fromRGB(255,255,0)
+WarnLabel.TextStrokeTransparency = 0.5
+WarnLabel.ZIndex = 10
+
+local function Grounded()
+    return Humanoid and Humanoid:IsDescendantOf(workspace) and Humanoid.FloorMaterial ~= Enum.Material.Air
+end
+
+local function LoadAndPrepareTrack()
+    if Track then
+        pcall(function() Track:Stop() end)
+        Track = nil
+    end
+    if Humanoid then
+        local ok, res = pcall(function() return Humanoid:LoadAnimation(Animation) end)
+        if ok and res then
+            Track = res
+            Track.Priority = Enum.AnimationPriority.Action4
+        else
+            Track = nil
+        end
+    else
+        Track = nil
+    end
+end
+
+local function Invis_Disable()
+    if not InvisEnabled then return end
+    InvisEnabled = false
+    if Track then pcall(function() Track:Stop() end) end
+    if Humanoid then pcall(function() workspace.CurrentCamera.CameraSubject = Humanoid end) end
+    if Character then
+        for _, v in pairs(Character:GetDescendants()) do
+            if v:IsA("BasePart") and v.Transparency == 0.5 then
+                v.Transparency = 0
+            end
+        end
+    end
+    WarnLabel.Visible = false
+end
+
+local function Invis_Enable()
+    if InvisEnabled or not Invis_Fixed then return end
+    UpdateCharacterReferences()
+    if not Character or not Humanoid or not HumanoidRootPart then return end
+    if not Character:FindFirstChild("Torso") then
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {Title="Invisibility FAILED", Text="Feature requires R6 Avatar.", Duration=5})
+        end)
+        return
+    end
+    InvisEnabled = true
+    pcall(function() workspace.CurrentCamera.CameraSubject = HumanoidRootPart end)
+    LoadAndPrepareTrack()
+end
+
+-- Conexões de troca de character
+Player.CharacterAdded:Connect(function(newChar)
+    if Track then pcall(function() Track:Stop() end) Track = nil end
+    task.wait()
+    UpdateCharacterReferences()
+    if not Humanoid then
+        task.wait(0.5)
+        UpdateCharacterReferences()
+        if not Humanoid then
+            Invis_Fixed = false
+            if InvisEnabled then Invis_Disable() end
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {Title="Invisibility Error", Text="Could not verify character type.", Duration=5})
+            end)
+            return
+        end
+    end
+    if Humanoid.RigType ~= Enum.HumanoidRigType.R6 then
+        Invis_Fixed = false
+        if InvisEnabled then Invis_Disable() end
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {Title="Invisibility Warning", Text="Non-R6 Avatar detected. Invisibility disabled.", Duration=5})
+        end)
+        return
+    else
+        Invis_Fixed = true
+    end
+    if InvisEnabled then
+        if HumanoidRootPart then pcall(function() workspace.CurrentCamera.CameraSubject = HumanoidRootPart end) end
+        LoadAndPrepareTrack()
+    end
+end)
+
+Player.CharacterRemoving:Connect(function()
+    if Track then pcall(function() Track:Stop() end) Track = nil end
+    WarnLabel.Visible = false
+end)
+
+-- Loop principal (uso de Heartbeat)
+if Heartbeat then
+    Heartbeat:Connect(function(deltaTime)
+        if not InvisEnabled or not Invis_Fixed then
+            if not InvisEnabled and Character then
+                for _, v in pairs(Character:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Transparency == 0.5 then v.Transparency = 0 end
+                end
+            end
+            WarnLabel.Visible = false
+            return
+        end
+
+        if not Character or not Humanoid or not HumanoidRootPart or not Humanoid:IsDescendantOf(workspace) or Humanoid.Health <= 0 then
+            WarnLabel.Visible = false
+            return
+        end
+
+        WarnLabel.Visible = not Grounded()
+
+        local speed = 12
+        if Humanoid.MoveDirection.Magnitude > 0 then
+            local offset = Humanoid.MoveDirection * speed * deltaTime
+            if HumanoidRootPart and HumanoidRootPart:IsDescendantOf(workspace) then
+                HumanoidRootPart.CFrame = HumanoidRootPart.CFrame + offset
+            end
+        end
+
+        local OldCFrame = HumanoidRootPart.CFrame
+        local OldCameraOffset = Humanoid.CameraOffset
+
+        local _, y = workspace.CurrentCamera.CFrame:ToOrientation()
+        if HumanoidRootPart and HumanoidRootPart:IsDescendantOf(workspace) then
+            HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.CFrame.Position) * CFrame.fromOrientation(0, y, 0)
+            HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.Angles(math.rad(90), 0, 0)
+        end
+        Humanoid.CameraOffset = Vector3.new(0, 1.44, 0)
+
+        if Track then
+            local ok = pcall(function()
+                if not Track.IsPlaying then Track:Play() end
+                Track:AdjustSpeed(0)
+                Track.TimePosition = 0.3
+            end)
+            if not ok then LoadAndPrepareTrack() end
+        elseif Humanoid and Humanoid.Health > 0 then
+            LoadAndPrepareTrack()
+        end
+
+        if RenderStepped then RenderStepped:Wait() end
+
+        if Humanoid and Humanoid:IsDescendantOf(workspace) then
+            Humanoid.CameraOffset = OldCameraOffset
+        end
+        if HumanoidRootPart and HumanoidRootPart:IsDescendantOf(workspace) then
+            HumanoidRootPart.CFrame = OldCFrame
+        end
+
+        if Track then pcall(function() Track:Stop() end) end
+
+        if HumanoidRootPart and HumanoidRootPart:IsDescendantOf(workspace) then
+            local LookVector = workspace.CurrentCamera.CFrame.LookVector
+            local Horizontal = Vector3.new(LookVector.X, 0, LookVector.Z)
+            if Horizontal.Magnitude > 0.1 then
+                local TargetCFrame = CFrame.new(HumanoidRootPart.Position, HumanoidRootPart.Position + Horizontal.Unit)
+                HumanoidRootPart.CFrame = TargetCFrame
+            end
+        end
+
+        if Character then
+            for _, v in pairs(Character:GetDescendants()) do
+                if v:IsA("BasePart") and v.Transparency ~= 1 then
+                    v.Transparency = 0.5
+                end
+            end
+        end
+    end)
+end
+
+-- Expondo funções com proteção
+_G.Invis_Enable = Invis_Enable
+_G.Invis_Disable = Invis_Disable
+_G.IsInvisEnabled = function() return InvisEnabled end
+
+-- === Toggle (UI) segura: chama as funções por pcall para evitar erros no runtime ===
+plrc:AddToggle("inv", {
+    Text = "Invisible",
+    Tooltip = "This is a tooltip",
+    DisabledTooltip = "I am disabled!",
+    Default = false,
+    Disabled = false,
+    Visible = true,
+    Risky = false,
+
+    Callback = function(Value)
+        functions.invisible = Value
+        if Value then
+            pcall(function() if _G and _G.Invis_Enable then _G.Invis_Enable() end end)
+        else
+            pcall(function() if _G and _G.Invis_Disable then _G.Invis_Disable() end end)
+        end
+    end
+})
+:AddKeyPicker("invkey", {
+    Default = "None",
+    SyncToggleState = true,
+    Mode = "Toggle",
+    Text = "Invisible Key",
+    NoUI = false,
+})
+
+
+
+local rp = game:GetService("ReplicatedStorage")
+local ts = rp:FindFirstChild("Values") and rp.Values:FindFirstChild("FinishSpeedMulti")
+if ts then
+    plrc:AddSlider("finish", {
+        Text = "Finish Stomp Speed",
+        Default = 2,
+        Min = 0,
+        Max = 10,
+        Rounding = 1,
+        Compact = false,
+        
+        Callback = function(Value)
+            ts.Value = Value 
+        end,
+        
+        Tooltip = "I am a slider!", -- Information shown when you hover over the slider
+        DisabledTooltip = "I am disabled!", -- Information shown when you hover over the slider while it's disabled
+        
+        Disabled = false, -- Will disable the slider (true / false)
+        Visible = true, -- Will make the slider invisible (true / false)
+        })
+end
+
+plrc:AddSlider("grav", {
+    Text = "Gravity",
+    Default = 2,
+    Min = 0,
+    Max = 100,
+    Rounding = 1,
+    Compact = false,
+        
+    Callback = function(Value)
+        workspace.Gravity = Value
+    end,
+        
+    Tooltip = "I am a slider!", -- Information shown when you hover over the slider
+    DisabledTooltip = "I am disabled!", -- Information shown when you hover over the slider while it's disabled
+        
+    Disabled = false, -- Will disable the slider (true / false)
+    Visible = true, -- Will make the slider invisible (true / false)
+})
+
+local RUNS = {
+	JumpHeight = nil
+}
+
+local me = game.Players.LocalPlayer
+local run = game:GetService("RunService")
+
+plrc:AddSlider("jump", {
+    Text = "Jump Height",
+    Default = 2,
+    Min = 0,
+    Max = 100,
+    Rounding = 1,
+    Compact = false,
+        
+    Callback = function(Value)
+        if RUNS.JumpHeight then
+            RUNS.JumpHeight:Disconnect()
+            RUNS.JumpHeight = nil
+        end
+        
+        RUNS.JumpHeight = run.RenderStepped:Connect(function()
+            local hum = me.Character and me.Character:FindFirstChild("Humanoid")
+            if hum then
+                hum.UseJumpPower = false
+                hum.JumpHeight = Value
+            end
+        end)
+    end,
+        
+    Tooltip = "I am a slider!",
+    DisabledTooltip = "I am disabled!",
+        
+    Disabled = false,
+    Visible = true,
+})
