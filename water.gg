@@ -161,114 +161,89 @@ local function downed(p)
 		return false
 	end
 end
-
 silent:AddToggle("silent", {
-	Text = "Silent Aim",
-	Tooltip = "This is a tooltip",
-	DisabledTooltip = "I am disabled!",
+    Text = "Silent Aim",
+    Default = false,
 
-	Default = false,
-	Disabled = false,
-	Visible = true,
-	Risky = false
-})
+    Callback = function(Value)
+        functions.SilentAim = Value
+        if Value then
+            cockie.SilentAimCircle = Drawing.new("Circle")
+            cockie.SilentAimCircle.Color = SectionSettings.SilentAim.DrawColor
+            cockie.SilentAimCircle.Thickness = SectionSettings.SilentAim.Thickness
+            cockie.SilentAimCircle.NumSides = 50
+            cockie.SilentAimCircle.Radius = SectionSettings.SilentAim.DrawSize
+            cockie.SilentAimCircle.Filled = false
+            cockie.SilentAimCircle.Visible = SectionSettings.SilentAim.Draw
+            cockie.SilentAimCircle.Position = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
 
-silent.Callback = function(Value)
-    functions.SilentAim = Value
-    if Value then
-        cockie.SilentAimCircle = Drawing.new("Circle")
-        cockie.SilentAimCircle.Color = SectionSettings.SilentAim.DrawColor
-        cockie.SilentAimCircle.Thickness = 2
-        cockie.SilentAimCircle.NumSides = 50
-        cockie.SilentAimCircle.Radius = SectionSettings.SilentAim.DrawSize
-        cockie.SilentAimCircle.Filled = false
-        cockie.SilentAimCircle.Visible = SectionSettings.SilentAim.Draw
-        cockie.SilentAimCircle.Position = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
-        local target = nil
-        local function GetClosest()
-            target = nil
-            local shortest = SectionSettings.SilentAim.DrawSize
-            for _, a in pairs(plrs:GetPlayers()) do
-                if a ~= me and a.Character then
-                    if SectionSettings.SilentAim.CheckDowned and CharStats(a).Downed.Value == true then continue end
-                    if SectionSettings.SilentAim.CheckTeam and a.Team == me.Team then continue end
-                    if SectionSettings.SilentAim.CheckWhiteList and table.find(WhiteList, a) then continue end
-					if SectionSettings.SilentAim.CheckDowned and downed(v) then continue end
-                    local hrp = a.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local screenpos, onScreen = camera:WorldToViewportPoint(hrp.Position)
+            local target = nil
+
+            local function GetClosest()
+                target = nil
+                local closest = SectionSettings.SilentAim.DrawSize
+                for _, v in pairs(plrs:GetPlayers()) do
+                    if v ~= me and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                        if SectionSettings.SilentAim.CheckDowned and downed(v) then continue end
+                        if SectionSettings.SilentAim.CheckTeam and v.Team == me.Team then continue end
+                        if SectionSettings.SilentAim.CheckWhiteList and table.find(Whitelist, v) then continue end
+                        if SectionSettings.SilentAim.CheckFF and v.Character:FindFirstChild("ForceField") then continue end
+
+                        local hrp = v.Character.HumanoidRootPart
+                        local pos, onScreen = camera:WorldToViewportPoint(hrp.Position)
                         if onScreen then
-                            local dist = (Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2) - Vector2.new(screenpos.X, screenpos.Y)).Magnitude
-                            if dist < shortest then
-                                target = a
-                                shortest = dist
+                            local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).Magnitude
+                            if dist < closest then
+                                target = v
+                                closest = dist
                             end
                         end
                     end
                 end
             end
-        end
-        getgenv().SilentAimRenderConn = RunService.RenderStepped:Connect(GetClosest)
-        local VisualizeEvent = rp.Events2.Visualize
-        local DamageEvent = rp.Events["ZFKLF__H"]
-        getgenv().SilentAimVisualizeConn = VisualizeEvent.Event:Connect(function(_, ShotCode, _, Gun, _, StartPos, BulletsPerShot)
-            if not functions.SilentAim then return end
-            if not Gun or not target or not target.Character or not target.Character:FindFirstChild("Humanoid") or target.Character:FindFirstChild("Humanoid").Health == 0 then return end
-            if not me.Character or not me.Character:FindFirstChildOfClass("Tool") then return end
-            local selectedPart = SectionSettings.SilentAim.TargetParts[1] or "Head"
-            local targetPart = target.Character:FindFirstChild(selectedPart) or target.Character:FindFirstChild("Head")
-            if not targetPart then return end
-            local partPos = targetPart.Position
-            local Bullets = {}
-            for i = 1, math.clamp(#BulletsPerShot, 1, 100) do
-                table.insert(Bullets, CFrame.new(StartPos, partPos).LookVector)
-            end
-			local hitchance = SectionSettings.SilentAim.HitChance or 100
-			if math.random(1, 100) > 100 then return end
-            task.wait(0.005)
-            for i, dir in pairs(Bullets) do
-                DamageEvent:FireServer("🧈", Gun, ShotCode, i, targetPart, partPos, dir)
-            end
-            if Gun:FindFirstChild("Hitmarker") then
-                Gun.Hitmarker:Fire(targetPart)
-            end
-        end)
-    else
-        if cockie.SilentAimCircle then
-            cockie.SilentAimCircle:Remove()
-            cockie.SilentAimCircle = nil
-        end
-        if getgenv().SilentAimRenderConn then
-            getgenv().SilentAimRenderConn:Disconnect()
-        end
-        if getgenv().SilentAimVisualizeConn then
-            getgenv().SilentAimVisualizeConn:Disconnect()
+
+            getgenv().SilentAimConn1 = RunService.RenderStepped:Connect(GetClosest)
+
+            local VisualizeEvent = rp.Events2.Visualize
+            local DamageEvent = rp.Events["ZFKLF__H"]
+
+            getgenv().SilentAimConn3 = VisualizeEvent.Event:Connect(function(_, ShotCode, _, Gun, _, StartPos, BulletsPerShot)
+                if not functions.SilentAim or not target or not target.Character then return end
+                if not me.Character or not me.Character:FindFirstChildOfClass("Tool") then return end
+
+                local hitchance = SectionSettings.SilentAim.HitChance or 100
+                if math.random(1,100) > hitchance then return end
+
+                local Bullets = {}
+                for i = 1, math.clamp(#BulletsPerShot, 1, 100) do
+                    table.insert(Bullets, (partPos - StartPos).Unit)
+                end
+
+                task.wait(0.005)
+
+                for i, dir in pairs(Bullets) do
+                    DamageEvent:FireServer("butter", Gun, ShotCode, i, targetPart, partPos, dir)
+                end
+
+                if Gun:FindFirstChild("Hitmarker") then
+                    Gun.Hitmarker:Fire(targetPart)
+                end
+            end)
+
+        else
+            if cockie.SilentAimCircle then cockie.SilentAimCircle:Remove() cockie.SilentAimCircle = nil end
+            if getgenv().SilentAimConn1 then getgenv().SilentAimConn1:Disconnect() getgenv().SilentAimConn1 = nil end
+            if getgenv().SilentAimConn2 then getgenv().SilentAimConn2:Disconnect() getgenv().SilentAimConn2 = nil end
+            if getgenv().SilentAimConn3 then getgenv().SilentAimConn3:Disconnect() getgenv().SilentAimConn3 = nil end
         end
     end
-end    
-
+})
 :AddKeyPicker("silentkey", {
     Default = "None",
     SyncToggleState = true,
     Mode = "Toggle",
     Text = "Silent Aim Key",
     NoUI = false,
-})
-
-silent:AddToggle("team", {
-	Text = "Check Team",
-	Tooltip = "This is a tooltip",
-	DisabledTooltip = "I am disabled!",
-
-	Default = false,
-	Disabled = false,
-	Visible = true,
-	Risky = false,
-
-	Callback = function(Value)
-    SectionSettings.SilentAim.CheckTeam = Value
-    functions.CheckTeam = Value
-end,
 })
 
 silent:AddToggle("down", {
