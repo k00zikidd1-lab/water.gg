@@ -10,6 +10,8 @@ local camera = Workspace.CurrentCamera
 local run = game:GetService("RunService")
 
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/k00zikidd1-lab/FemWare/refs/heads/main/UI%20lol", true))()
+local esp = loadstring(game:HttpGet("https://raw.githubusercontent.com/JackHiggly/RobloxThings/main/ESP", true))()
+local Watermark = lib:CreateWatermark("Water.gg | {game} | {fps}")
 local water = lib:CreateWindow('Water.gg 1.0.2a', Vector2.new(550, 700))
 
 local main = water:CreateTab("Combat")
@@ -17,7 +19,7 @@ local visuals = water:CreateTab("Visuals")
 
 local weapon = main:CreateSector("Weapon Assist", "right")
 local char = main:CreateSector("Character Modifications", "left")
-local pesp = main:CreateSector("Player ESP", "left")
+local pesp = visuals:CreateSector("Player ESP", "left")
 
 local cockie = {}
 local functions = { 
@@ -464,6 +466,10 @@ weapon:AddToggle("Hitlog", Settings.hitlogEnabled, function(V)
     Settings.hitlogEnabled = V
 end)
 
+weapon:AddToggle("Bullet Tracer", Settings.bulletTracerEnabled, function(V)
+    Settings.bulletTracerEnabled = V
+end)
+
 pesp:AddToggle("Enabled", esp.Enabled, function(V)
     esp.Enabled = V
 end)
@@ -486,11 +492,6 @@ end)
 
 pesp:AddToggle("Face Camera", esp.FaceCamera, function(V)
     esp.FaceCamera = V
-end)
-
-
-weapon:AddToggle("Bullet Tracer", Settings.bulletTracerEnabled, function(V)
-    Settings.bulletTracerEnabled = V
 end)
 
 local speedEnabled = false
