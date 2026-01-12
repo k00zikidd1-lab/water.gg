@@ -6,7 +6,7 @@ local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
-local camera = Workspace.CurrentCamera -- Mantido como duplicata conforme original
+local camera = Workspace.CurrentCamera
 local run = game:GetService("RunService")
 
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/k00zikidd1-lab/FemWare/refs/heads/main/UI%20lol", true))()
@@ -14,9 +14,10 @@ local water = lib:CreateWindow('Water.gg 1.0.2a', Vector2.new(550, 700))
 
 local main = water:CreateTab("Combat")
 local visuals = water:CreateTab("Visuals")
-local player = water:CreateTab("Player")
 
 local weapon = main:CreateSector("Weapon Assist", "right")
+local char = main:CreateSector("Character Modifications", "left")
+local pesp = main:CreateSector("Player ESP", "left")
 
 local cockie = {}
 local functions = { 
@@ -24,11 +25,13 @@ local functions = {
     aimbot = false,
     wall = false,
     smooth = false,
-    smoothsize = 0.1, -- Inicializado com valor numérico
+    smoothsize = 0.1,
     fov = false,
-    fovsize = 100, -- Inicializado com valor numérico
+    fovsize = 100,
     team = false,
-    RageBot = false 
+    RageBot = false,
+    SilentMiddle = false,
+    AimbotMiddle = false
 }
 
 local SectionSettings = {
@@ -108,7 +111,6 @@ local function SetupSilentAim()
     cockie.SilentAimCircle.Radius = SectionSettings.SilentAim.DrawSize
     cockie.SilentAimCircle.Filled = false
     cockie.SilentAimCircle.Visible = false
-    cockie.SilentAimCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
 
     local target = nil
     local VisualizeEvent = ReplicatedStorage:WaitForChild("Events2"):WaitForChild("Visualize")
@@ -116,7 +118,7 @@ local function SetupSilentAim()
     local function GetClosest()
         target = nil
         local shortest = SectionSettings.SilentAim.ShowFOV and SectionSettings.SilentAim.DrawSize or math.huge
-        local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        local center = functions.SilentMiddle and Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) or UserInputService:GetMouseLocation()
 
         for _, a in pairs(Players:GetPlayers()) do
             if a ~= LocalPlayer and a.Character and a.Character:FindFirstChild("HumanoidRootPart") then
@@ -139,9 +141,10 @@ local function SetupSilentAim()
 
     RunService.RenderStepped:Connect(function()
         if cockie.SilentAimCircle then
+            local pos = functions.SilentMiddle and Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) or UserInputService:GetMouseLocation()
             cockie.SilentAimCircle.Visible = functions.SilentAim and SectionSettings.SilentAim.ShowFOV
             cockie.SilentAimCircle.Radius = SectionSettings.SilentAim.DrawSize
-            cockie.SilentAimCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+            cockie.SilentAimCircle.Position = pos
         end
         if functions.SilentAim then
             GetClosest()
@@ -185,26 +188,27 @@ fovCircle.Filled = false
 fovCircle.Visible = false
 
 run.RenderStepped:Connect(function()
+    local pos = functions.AimbotMiddle and Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2) or UserInputService:GetMouseLocation()
     fovCircle.Visible = functions.fov
     fovCircle.Radius = functions.fovsize
-    fovCircle.Position = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    fovCircle.Position = pos
 end)
 
-local function aimbotLoop() -- Renomeado para não conflitar com a chamada
+local function aimbotLoop()
     while true do 
         if functions.aimbot then
             local character = LocalPlayer.Character
             if character and character:FindFirstChild('Head') then
                 local targetPart = nil
                 local shortestDistance = functions.fovsize
-                local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                local center = functions.AimbotMiddle and Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2) or UserInputService:GetMouseLocation()
                 
                 for _, p in pairs(Players:GetPlayers()) do
                     if functions.team and p.Team == LocalPlayer.Team then continue end
                     if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild('Head') then
                         local pos, onscreen = camera:WorldToViewportPoint(p.Character.Head.Position)
                         if onscreen then
-                            local mousedistance = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+                            local mousedistance = (Vector2.new(pos.X, pos.Y) - center).Magnitude
                             if mousedistance <= functions.fovsize then
                                 local cansee = true
                                 if functions.wall then
@@ -258,7 +262,7 @@ end
 
 local function MakeRaycastParams()
     local rp = RaycastParams.new()
-    rp.FilterType = Enum.RaycastFilterType.Blacklist
+    rp.FilterType = Enum.RaycastFilterType.Exclude
     rp.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
     rp.IgnoreWater = true
     return rp
@@ -309,19 +313,12 @@ local function GetClosestEnemy()
             if head then
                 local dist3D = (originPos - head.Position).Magnitude
                 if dist3D <= Settings.maxDistance then
-                    if Settings.useFOV then
-                        local mousePos = UserInputService:GetMouseLocation()
-                        local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                        if onScreen then
-                            local d2 = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                            if d2 <= Settings.fovRadius and d2 < shortest then
-                                shortest = d2
-                                closest = p
-                            end
-                        end
-                    else
-                        if dist3D < shortest then
-                            shortest = dist3D
+                    local center = functions.SilentMiddle and Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) or UserInputService:GetMouseLocation()
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local d2 = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+                        if d2 <= (Settings.useFOV and Settings.fovRadius or math.huge) and d2 < shortest then
+                            shortest = d2
                             closest = p
                         end
                     end
@@ -399,6 +396,10 @@ weapon:AddToggle("Silent Aim", SectionSettings.SilentAim.Toggle, function(V)
     functions.SilentAim = V
 end)
 
+weapon:AddToggle("FOV Circle (Mobile)", functions.SilentMiddle, function(V)
+    functions.SilentMiddle = V
+end)
+
 weapon:AddToggle("Check Downed", SectionSettings.SilentAim.CheckDowned, function(V)
     SectionSettings.SilentAim.CheckDowned = V
 end)
@@ -419,16 +420,14 @@ end):AddSlider(50, SectionSettings.SilentAim.DrawSize, 800, 1, function(V)
     SectionSettings.SilentAim.DrawSize = V
 end)
 
-weapon:AddToggle("FOV Circle (Mobile)", SectionSettings.SilentAim.ShowFOV, function(V)
-    SectionSettings.SilentAim.ShowFOV = V
-	local mouselocation = UserInputService:GetMouseLocation()
-	cockie.SilentAimCircle.Position = Vector2.new(mouselocation.Y, mouselocation.X)
-end)
-
 weapon:AddSeperator("Aimbot")
 
 weapon:AddToggle("Aimbot", functions.aimbot, function(V)
     functions.aimbot = V
+end)
+
+weapon:AddToggle("FOV Circle (Mobile)", functions.AimbotMiddle, function(V)
+    functions.AimbotMiddle = V
 end)
 
 weapon:AddToggle("Wall Check", functions.wall, function(V)
@@ -465,6 +464,51 @@ weapon:AddToggle("Hitlog", Settings.hitlogEnabled, function(V)
     Settings.hitlogEnabled = V
 end)
 
+pesp:AddToggle("Enabled", esp.Enabled, function(V)
+    esp.Enabled = V
+end)
+
+pesp:AddToggle("Show Boxes", esp.Boxes, function(V)
+    esp.Boxes = V
+end)
+
+pesp:AddToggle("Show Names", esp.Names, function(V)
+    esp.Names = V
+end)
+
+pesp:AddToggle("Show Distance", esp.Distance, function(V)
+    esp.Distance = V
+end)
+
+pesp:AddToggle("Show Health", esp.Health, function(V)
+    esp.Health = V
+end)
+
+pesp:AddToggle("Face Camera", esp.FaceCamera, function(V)
+    esp.FaceCamera = V
+end)
+
+
 weapon:AddToggle("Bullet Tracer", Settings.bulletTracerEnabled, function(V)
     Settings.bulletTracerEnabled = V
+end)
+
+local speedEnabled = false
+local speedAmount = 1
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if speedEnabled and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+        local moveDir = game.Players.LocalPlayer.Character.Humanoid.MoveDirection
+        
+        if moveDir.Magnitude > 0 then
+            hrp.CFrame = hrp.CFrame + (moveDir * (speedAmount / 10))
+        end
+    end
+end)
+
+char:AddToggle("CFrame Speed", false, function(V)
+    speedEnabled = V
+end):AddSlider(1, 1, 10, 1, function(V)
+    speedAmount = V
 end)
