@@ -11,13 +11,14 @@ local run = game:GetService("RunService")
 
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/k00zikidd1-lab/FemWare/refs/heads/main/UI%20lol", true))()
 local esp = loadstring(game:HttpGet("https://raw.githubusercontent.com/JackHiggly/FemWare/refs/heads/main/ESP", true))()
-
+local Watermark = lib:CreateWatermark("Water.gg | {game} | {fps}")
 local water = lib:CreateWindow('Water.gg 1.0.2a', Vector2.new(550, 700))
 
 local main = water:CreateTab("Combat")
 local visuals = water:CreateTab("Visuals")
 
 local weapon = main:CreateSector("Weapon Assist", "right")
+local char = main:CreateSector("Character Modifications", "left")
 local pesp = visuals:CreateSector("Player Visuals", "left")
 
 local cockie = {}
@@ -397,7 +398,7 @@ weapon:AddToggle("Silent Aim", SectionSettings.SilentAim.Toggle, function(V)
     functions.SilentAim = V
 end)
 
-weapon:AddToggle("Silent FOV in Middle", functions.SilentMiddle, function(V)
+weapon:AddToggle("FOV Circle (Mobile)", functions.SilentMiddle, function(V)
     functions.SilentMiddle = V
 end)
 
@@ -427,7 +428,7 @@ weapon:AddToggle("Aimbot", functions.aimbot, function(V)
     functions.aimbot = V
 end)
 
-weapon:AddToggle("Aimbot FOV in Middle", functions.AimbotMiddle, function(V)
+weapon:AddToggle("FOV Circle (Mobile)", functions.AimbotMiddle, function(V)
     functions.AimbotMiddle = V
 end)
 
@@ -465,18 +466,50 @@ weapon:AddToggle("Hitlog", Settings.hitlogEnabled, function(V)
     Settings.hitlogEnabled = V
 end)
 
-pesp:AddToggle("Show Names", esp.Names, function(V)
-    esp.Names = V
+weapon:AddToggle("Bullet Tracer", Settings.bulletTracerEnabled, function(V)
+    Settings.bulletTracerEnabled = V
 end)
 
-pesp:AddToggle("Show Health", esp.Health, function(V)
-    esp.Health = V
+pesp:AddToggle("Enabled", esp.Enabled, function(V)
+    esp.Enabled = V
+end)
+
+pesp:AddToggle("Show Boxes", esp.Boxes, function(V)
+    esp.Boxes = V
+end)
+
+pesp:AddToggle("Show Names", esp.Names, function(V)
+    esp.Names = V
 end)
 
 pesp:AddToggle("Show Distance", esp.Distance, function(V)
     esp.Distance = V
 end)
 
+pesp:AddToggle("Show Health", esp.Health, function(V)
+    esp.Health = V
+end)
+
 pesp:AddToggle("Face Camera", esp.FaceCamera, function(V)
     esp.FaceCamera = V
+end)
+
+local speedEnabled = false
+local speedAmount = 1
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if speedEnabled and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+        local moveDir = game.Players.LocalPlayer.Character.Humanoid.MoveDirection
+        
+        if moveDir.Magnitude > 0 then
+            hrp.CFrame = hrp.CFrame + (moveDir * (speedAmount / 10))
+        end
+    end
+end)
+
+char:AddToggle("CFrame Speed", false, function(V)
+    speedEnabled = V
+end):AddSlider(1, 1, 10, 1, function(V)
+    speedAmount = V
 end)
