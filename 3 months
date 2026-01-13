@@ -521,6 +521,8 @@ char:AddToggle("FOV Camera", false, function(V)
     fovcam = V
 end):AddSlider(0, 70, 120, 1, function(V)
     if fovcam then
-        camera.FieldOfCamera = V
+        run.RenderStepped:Connect(function()
+            camera.FieldOfView = V
+        end)
     end
 end)
