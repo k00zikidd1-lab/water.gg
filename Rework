@@ -490,6 +490,10 @@ pesp:AddToggle("Show Health", esp.Health, function(V)
     esp.Health = V
 end)
 
+pesp:AddToggle("Show Tool", esp.Tool, function(V)
+    esp.Tool = V
+end)
+
 pesp:AddToggle("Face Camera", esp.FaceCamera, function(V)
     esp.FaceCamera = V
 end)
