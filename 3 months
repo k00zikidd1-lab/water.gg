@@ -511,5 +511,16 @@ end)
 char:AddToggle("CFrame Speed", false, function(V)
     speedEnabled = V
 end):AddSlider(1, 1, 10, 1, function(V)
-    speedAmount = V
+    if speedEnabled then
+        speedAmount = V
+    end
+end)
+
+fovcam = false
+char:AddToggle("FOV Camera", false, function(V)
+    fovcam = V
+end):AddSlider(0, 70, 120, 1, function(V)
+    if fovcam then
+        camera.FieldOfCamera = V
+    end
 end)
