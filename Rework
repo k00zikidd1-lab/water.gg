@@ -11,7 +11,6 @@ local run = game:GetService("RunService")
 
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/JackHiggly/FemWare/refs/heads/main/UI", true))()
 local esp = loadstring(game:HttpGet("https://raw.githubusercontent.com/JackHiggly/FemWare/refs/heads/main/ESP", true))()
-local Watermark = lib:CreateWatermark("Water.gg | {game} | {fps}")
 local water = lib:CreateWindow('Water.gg 1.0.2a', Vector2.new(550, 700))
 
 local main = water:CreateTab("Combat")
